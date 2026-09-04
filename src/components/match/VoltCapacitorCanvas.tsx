@@ -25,6 +25,15 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const pixiAppRef = useRef<PIXI.Application | null>(null);
 
+  // References to dynamic graphics elements for 60fps ticker animation
+  const positiveChargesRef = useRef<PIXI.Graphics[]>([]);
+  const negativeChargesRef = useRef<PIXI.Graphics[]>([]);
+  const eFieldLinesRef = useRef<PIXI.Graphics | null>(null);
+  const crtSweepDotRef = useRef<PIXI.Graphics | null>(null);
+  const crtWaveGfxRef = useRef<PIXI.Graphics | null>(null);
+  const sparkContainerRef = useRef<PIXI.Container | null>(null);
+  const digitalVoltmeterTextRef = useRef<PIXI.Text | null>(null);
+
   const isLight = theme === 'light';
 
   useEffect(() => {
@@ -55,11 +64,32 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
       containerRef.current.appendChild(app.canvas);
       pixiAppRef.current = app;
 
-      // 1. Digital Oscilloscope Screen (Left)
-      drawOscilloscopeScreen(app.stage, isLight, round);
+      // 1. Tech Grid
+      const gridGfx = new PIXI.Graphics();
+      app.stage.addChild(gridGfx);
+      drawGrid(gridGfx, width, height);
 
-      // 2. Parallel Plate Capacitor Hardware (Right)
-      drawParallelPlateCapacitor(app.stage, isLight, round);
+      // 2. Spark Container
+      const sparkContainer = new PIXI.Container();
+      app.stage.addChild(sparkContainer);
+      sparkContainerRef.current = sparkContainer;
+
+      // 3. Real Electrolytic Capacitor Hardware Component (Left Side, x = 220)
+      drawRealCapacitorHardware(app.stage, round);
+
+      // 4. Bench Oscilloscope CRT Display Screen (Right Side, x = 540)
+      drawOscilloscopeBench(app.stage, round);
+
+      // 5. Digital Voltmeter Headup Display
+      const vmText = new PIXI.Text({
+        text: '0.00 V',
+        style: { fontSize: 24, fill: 0x34d399, fontWeight: 'bold', fontFamily: 'monospace' },
+      });
+      vmText.x = 220;
+      vmText.y = 425;
+      vmText.anchor.set(0.5);
+      app.stage.addChild(vmText);
+      digitalVoltmeterTextRef.current = vmText;
     };
 
     initCanvas();
@@ -73,72 +103,192 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
     };
   }, [round.id, isLight]);
 
-  const drawOscilloscopeScreen = (stage: PIXI.Container, lightMode: boolean, data: VoltCapacitorRoundData) => {
-    const container = new PIXI.Container();
-
-    // Scope Frame
-    const gfx = new PIXI.Graphics();
-    gfx.rect(60, 80, 420, 320).fill({ color: 0x022c22 }); // Phosphor green retro scope CRT
-    gfx.rect(60, 80, 420, 320).stroke({ width: 4, color: 0x10b981 });
-
-    // CRT Grid Lines
-    gfx.setStrokeStyle({ width: 1, color: 0x059669, alpha: 0.4 });
-    for (let x = 60; x <= 480; x += 35) gfx.moveTo(x, 80).lineTo(x, 400);
-    for (let y = 80; y <= 400; y += 32) gfx.moveTo(60, y).lineTo(480, y);
+  const drawGrid = (gfx: PIXI.Graphics, width: number, height: number) => {
+    gfx.clear();
+    gfx.setStrokeStyle({ width: 1, color: 0x1e293b, alpha: 0.4 });
+    for (let x = 0; x < width; x += 30) gfx.moveTo(x, 0).lineTo(x, height);
+    for (let y = 0; y < height; y += 30) gfx.moveTo(0, y).lineTo(width, y);
     gfx.stroke();
-
-    // Target Voltage Cutoff Line (Emerald green dotted)
-    const targetY = 400 - ((data.targetVoltage / data.sourceVoltage) * 280);
-    gfx.moveTo(60, targetY).lineTo(480, targetY).stroke({ width: 2, color: 0xfacc15 });
-
-    // Exponential Charge Trace Wave (Neon Green)
-    gfx.setStrokeStyle({ width: 3.5, color: 0x34d399 });
-    gfx.moveTo(60, 400);
-    for (let px = 0; px <= 420; px += 10) {
-      const tNorm = (px / 420) * 5.0; // 0 to 5s
-      const vNorm = 1 - Math.exp(-tNorm / (data.timeConstant || 1.0));
-      const py = 400 - (vNorm * 280);
-      gfx.lineTo(60 + px, py);
-    }
-    gfx.stroke();
-
-    container.addChild(gfx);
-    stage.addChild(container);
   };
 
-  const drawParallelPlateCapacitor = (stage: PIXI.Container, lightMode: boolean, data: VoltCapacitorRoundData) => {
+  /**
+   * Renders realistic 3D Electrolytic Can Capacitor with Internal Cutaway Plate Window
+   */
+  const drawRealCapacitorHardware = (stage: PIXI.Container, data: VoltCapacitorRoundData) => {
     const container = new PIXI.Container();
-    container.x = 600;
-    container.y = 240;
+    container.x = 220;
+    container.y = 230;
 
     const gfx = new PIXI.Graphics();
-    // Top Aluminum Plate (+ Pole)
-    gfx.rect(-80, -90, 160, 16).fill({ color: 0x38bdf8 });
-    gfx.rect(-80, -90, 160, 16).stroke({ width: 2, color: 0xbae6fd });
 
-    // Bottom Aluminum Plate (- Pole)
-    gfx.rect(-80, 90, 160, 16).fill({ color: 0xef4444 });
-    gfx.rect(-80, 90, 160, 16).stroke({ width: 2, color: 0xfca5a5 });
+    // 1. Metal Connecting Wire Leads (Top + / Bottom -)
+    gfx.setStrokeStyle({ width: 6, color: 0x94a3b8 }); // Silver lead wire
+    gfx.moveTo(0, -180).lineTo(0, -110).stroke(); // Top anode lead (+)
+    gfx.moveTo(0, 110).lineTo(0, 180).stroke(); // Bottom cathode lead (-)
 
-    // Dielectric Layer / E-Field Lines
-    gfx.setStrokeStyle({ width: 2, color: 0xec4899, alpha: 0.5 });
-    for (let x = -60; x <= 60; x += 30) {
-      gfx.moveTo(x, -74).lineTo(x, 90);
-    }
-    gfx.stroke();
+    // Lead Terminals
+    gfx.circle(0, -180, 8).fill({ color: 0x38bdf8 });
+    gfx.circle(0, 180, 8).fill({ color: 0xef4444 });
 
-    const txt = new PIXI.Text({
-      text: `C = ${data.capacitance}μF`,
-      style: { fontSize: 11, fill: 0xec4899, fontWeight: 'bold', fontFamily: 'monospace' },
+    // 2. Cylindrical Can Body (Blue Vinyl Sleeve Aesthetic)
+    gfx.rect(-85, -110, 170, 220).fill({ color: 0x1e3a8a }); // Dark blue electrolytic sleeve
+    gfx.rect(-85, -110, 170, 220).stroke({ width: 4, color: 0x3b82f6 });
+
+    // Silver Aluminum Top Cap
+    gfx.rect(-85, -110, 170, 20).fill({ color: 0xcbd5e1 });
+    gfx.moveTo(-30, -100).lineTo(30, -100).stroke({ width: 2, color: 0x64748b }); // Safety Vent Slit
+
+    // Polarity Negative Stripe (Standard capacitor black stripe on right)
+    gfx.rect(55, -110, 30, 220).fill({ color: 0x0f172a });
+    const minusText = new PIXI.Text({
+      text: '- - -',
+      style: { fontSize: 16, fill: 0xffffff, fontWeight: 'bold', fontFamily: 'monospace' },
     });
-    txt.anchor.set(0.5, 3.2);
+    minusText.rotation = Math.PI / 2;
+    minusText.x = 72;
+    minusText.y = -60;
+    container.addChild(minusText);
+
+    // Stamped Rating Label
+    const stampText = new PIXI.Text({
+      text: `${data.capacitance}μF\n${data.sourceVoltage}V MAX`,
+      style: { fontSize: 12, fill: 0xfacc15, fontWeight: 'bold', fontFamily: 'monospace', align: 'center' },
+    });
+    stampText.anchor.set(0.5);
+    stampText.x = -25;
+    stampText.y = -65;
+    container.addChild(stampText);
+
+    // 3. INTERNAL CUTAWAY WINDOW (Revealing Dielectric Parallel Plates)
+    gfx.rect(-70, -10, 140, 100).fill({ color: 0x030712 }); // Dark inspection window
+    gfx.rect(-70, -10, 140, 100).stroke({ width: 2, color: 0x38bdf8 });
+
+    // Top Anode Plate (+ Cyan)
+    gfx.rect(-60, 5, 120, 10).fill({ color: 0x0284c7 });
+    gfx.rect(-60, 5, 120, 10).stroke({ width: 1.5, color: 0x38bdf8 });
+
+    // Bottom Cathode Plate (- Pink)
+    gfx.rect(-60, 75, 120, 10).fill({ color: 0xbe185d });
+    gfx.rect(-60, 75, 120, 10).stroke({ width: 1.5, color: 0xf43f5e });
 
     container.addChild(gfx);
-    container.addChild(txt);
+
+    // Dynamic Electric Field Lines Layer inside inspection window
+    const eFieldGfx = new PIXI.Graphics();
+    container.addChild(eFieldGfx);
+    eFieldLinesRef.current = eFieldGfx;
+
+    // Build Charge Particles Arrays (+ on top plate, - on bottom plate)
+    positiveChargesRef.current = [];
+    negativeChargesRef.current = [];
+
+    for (let i = 0; i < 8; i++) {
+      const pGfx = new PIXI.Graphics();
+      pGfx.circle(0, 0, 4).fill({ color: 0x38bdf8 });
+      pGfx.x = -50 + i * 14;
+      pGfx.y = 10;
+      pGfx.alpha = 0; // Starts invisible, fades in during charging
+      container.addChild(pGfx);
+      positiveChargesRef.current.push(pGfx);
+
+      const nGfx = new PIXI.Graphics();
+      nGfx.circle(0, 0, 4).fill({ color: 0xf43f5e });
+      nGfx.x = -50 + i * 14;
+      nGfx.y = 80;
+      nGfx.alpha = 0;
+      container.addChild(nGfx);
+      negativeChargesRef.current.push(nGfx);
+    }
+
     stage.addChild(container);
   };
 
-  // Simulation Trigger
+  /**
+   * Renders Retro Bench CRT Oscilloscope Screen
+   */
+  const drawOscilloscopeBench = (stage: PIXI.Container, data: VoltCapacitorRoundData) => {
+    const container = new PIXI.Container();
+    container.x = 560;
+    container.y = 230;
+
+    const gfx = new PIXI.Graphics();
+
+    // Metallic Bench Instrument Chassis
+    gfx.rect(-170, -150, 340, 300).fill({ color: 0x0f172a });
+    gfx.rect(-170, -150, 340, 300).stroke({ width: 4, color: 0x334155 });
+
+    // Phosphor CRT Screen
+    gfx.rect(-150, -130, 300, 240).fill({ color: 0x022c22 }); // Dark green phosphor
+    gfx.rect(-150, -130, 300, 240).stroke({ width: 3, color: 0x10b981 });
+
+    // CRT Phosphor Grid Lines
+    gfx.setStrokeStyle({ width: 1, color: 0x059669, alpha: 0.35 });
+    for (let x = -150; x <= 150; x += 30) gfx.moveTo(x, -130).lineTo(x, 110);
+    for (let y = -130; y <= 110; y += 24) gfx.moveTo(-150, y).lineTo(150, y);
+    gfx.stroke();
+
+    // Target Voltage Threshold Dotted Line (Yellow)
+    const targetY = 110 - ((data.targetVoltage / data.sourceVoltage) * 220);
+    gfx.moveTo(-150, targetY).lineTo(150, targetY).stroke({ width: 2, color: 0xfacc15 });
+
+    // Target Line Label
+    const txt = new PIXI.Text({
+      text: `TARGET: ${data.targetVoltage}V`,
+      style: { fontSize: 10, fill: 0xfacc15, fontWeight: 'bold', fontFamily: 'monospace' },
+    });
+    txt.x = 50;
+    txt.y = targetY - 14;
+    container.addChild(txt);
+
+    container.addChild(gfx);
+
+    // Live Curve Plot Waveform Graphics Layer
+    const waveGfx = new PIXI.Graphics();
+    container.addChild(waveGfx);
+    crtWaveGfxRef.current = waveGfx;
+
+    // Glowing CRT Sweep Beam Electron Dot
+    const sweepDot = new PIXI.Graphics();
+    sweepDot.circle(0, 0, 6).fill({ color: 0x34d399 });
+    sweepDot.circle(0, 0, 10).fill({ color: 0x6ee7b7, alpha: 0.5 });
+    sweepDot.x = -150;
+    sweepDot.y = 110;
+    container.addChild(sweepDot);
+    crtSweepDotRef.current = sweepDot;
+
+    stage.addChild(container);
+  };
+
+  /**
+   * Triggers realistic electrical spark discharge arcs
+   */
+  const triggerCapacitorSparks = (x: number, y: number) => {
+    if (!sparkContainerRef.current) return;
+    sparkContainerRef.current.removeChildren();
+
+    for (let i = 0; i < 30; i++) {
+      const spark = new PIXI.Graphics();
+      const isCyan = Math.random() > 0.5;
+      spark.circle(0, 0, 3 + Math.random() * 4).fill({ color: isCyan ? 0x38bdf8 : 0xfacc15 });
+      spark.x = x;
+      spark.y = y;
+      sparkContainerRef.current.addChild(spark);
+
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 50 + Math.random() * 90;
+
+      gsap.to(spark, {
+        x: x + Math.cos(angle) * speed,
+        y: y + Math.sin(angle) * speed,
+        alpha: 0,
+        scale: 0.1,
+        duration: 0.7 + Math.random() * 0.5,
+        ease: 'power2.out',
+      });
+    }
+  };
+
+  // REAL-TIME CHARGING SIMULATION ENGINE (60 FPS REALTIME SWEEP & CHARGE BUILDUP)
   useEffect(() => {
     if (isSimulating) {
       const evalRes = evaluateVoltCapacitorSubmission(round.correctTime, userTime);
@@ -155,10 +305,69 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
         idealTrajectoryPoints: [],
       };
 
-      const animDuration = Math.max(0.5, Math.min(4.0, round.correctTime));
-      gsap.to({}, {
-        duration: animDuration,
+      const totalSimDuration = Math.max(1.0, Math.min(4.0, userTime));
+      const stateObj = { progress: 0 };
+
+      gsap.to(stateObj, {
+        progress: 1,
+        duration: totalSimDuration,
+        ease: 'none',
+        onUpdate: () => {
+          const currentSimTime = stateObj.progress * userTime;
+          const currentVolts = round.sourceVoltage * (1 - Math.exp(-currentSimTime / (round.timeConstant || 1.0)));
+
+          // 1. Update Digital Voltmeter Text
+          if (digitalVoltmeterTextRef.current) {
+            digitalVoltmeterTextRef.current.text = `${currentVolts.toFixed(2)} V`;
+          }
+
+          // 2. Accumulate Positive & Negative Charges on Internal Capacitor Plates
+          const chargeRatio = Math.min(1.0, currentVolts / round.sourceVoltage);
+          const activeCount = Math.floor(chargeRatio * positiveChargesRef.current.length);
+
+          positiveChargesRef.current.forEach((p, idx) => {
+            p.alpha = idx <= activeCount ? 1 : 0;
+          });
+          negativeChargesRef.current.forEach((n, idx) => {
+            n.alpha = idx <= activeCount ? 1 : 0;
+          });
+
+          // 3. Draw Strengthening Electrostatic E-field lines
+          if (eFieldLinesRef.current) {
+            eFieldLinesRef.current.clear();
+            eFieldLinesRef.current.setStrokeStyle({ width: 2, color: 0xec4899, alpha: chargeRatio * 0.8 });
+            for (let x = -50; x <= 50; x += 14) {
+              eFieldLinesRef.current.moveTo(x, 15).lineTo(x, 75);
+            }
+            eFieldLinesRef.current.stroke();
+          }
+
+          // 4. Sweep CRT Oscilloscope Beam & Plot Live Exponential Waveform
+          if (crtSweepDotRef.current && crtWaveGfxRef.current) {
+            const sweepX = -150 + stateObj.progress * 300;
+            const sweepY = 110 - (currentVolts / round.sourceVoltage) * 220;
+
+            crtSweepDotRef.current.x = sweepX;
+            crtSweepDotRef.current.y = sweepY;
+
+            crtWaveGfxRef.current.clear();
+            crtWaveGfxRef.current.setStrokeStyle({ width: 3, color: 0x34d399 });
+            crtWaveGfxRef.current.moveTo(-150, 110);
+
+            for (let px = -150; px <= sweepX; px += 5) {
+              const pRatio = (px + 150) / 300;
+              const pTime = pRatio * userTime;
+              const pVolts = round.sourceVoltage * (1 - Math.exp(-pTime / (round.timeConstant || 1.0)));
+              const py = 110 - (pVolts / round.sourceVoltage) * 220;
+              crtWaveGfxRef.current.lineTo(px, py);
+            }
+            crtWaveGfxRef.current.stroke();
+          }
+        },
         onComplete: () => {
+          // Trigger Terminal Discharge Arc Spark Flash
+          triggerCapacitorSparks(220, 50);
+
           if (evalRes.tier === 'hit') {
             confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
           }
@@ -177,7 +386,9 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
         <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border text-xs shadow-md backdrop-blur-md ${
           isLight ? 'bg-slate-800/90 border-slate-700 text-slate-200' : 'bg-slate-900/80 border-slate-800 text-slate-300'
         }`}>
-          <div>RC Circuit: <span className="font-mono font-bold text-pink-400">R={round.resistance}kΩ</span>, <span className="font-mono font-bold text-purple-400">C={round.capacitance}μF</span></div>
+          <div>Capacitor C: <span className="font-mono font-bold text-pink-400">{round.capacitance} μF</span></div>
+          <div className="w-[1px] h-4 bg-slate-400/40" />
+          <div>Resistor R: <span className="font-mono font-bold text-sky-400">{round.resistance} kΩ</span></div>
           <div className="w-[1px] h-4 bg-slate-400/40" />
           <div>Target Voltage: <span className="font-mono font-bold text-amber-400">{round.targetVoltage} V</span></div>
           <div className="w-[1px] h-4 bg-slate-400/40" />
@@ -185,7 +396,7 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
         </div>
 
         <div className="px-3 py-1.5 rounded-lg border border-pink-500/30 text-pink-400 text-xs font-mono font-bold">
-          RC OSCILLOSCOPE ENGINE
+          3D ELECTROLYTIC CAPACITOR ENGINE
         </div>
       </div>
 
@@ -195,7 +406,7 @@ export const VoltCapacitorCanvas: React.FC<VoltCapacitorCanvasProps> = ({
         <div className={`text-xs font-mono px-3 py-1.5 rounded-lg border ${
           isLight ? 'bg-slate-800/90 border-slate-700 text-slate-300' : 'bg-slate-900/80 border-slate-800 text-slate-400'
         }`}>
-          ⚡ Oscilloscope: Calculate charge time t = -RC · ln(1 - V/V₀) to hit target voltage!
+          ⚡ Live Electrolytic Can: Watch charges accumulate on internal plates & CRT beam sweep in real time!
         </div>
       </div>
     </div>

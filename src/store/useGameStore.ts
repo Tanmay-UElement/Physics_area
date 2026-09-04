@@ -11,6 +11,13 @@ import { generateVoltCoulombRounds } from '../lib/physics/voltCoulombTug';
 import { generateVoltMagneticRounds } from '../lib/physics/voltMagneticMaze';
 import { generateVoltCapacitorRounds } from '../lib/physics/voltCapacitorRace';
 import { generateVoltKirchhoffRounds } from '../lib/physics/voltKirchhoff';
+import { generateVoltGeneratorRounds } from '../lib/physics/voltGeneratorCrank';
+import { generateVoltSeriesParallelRound } from '../lib/physics/voltSeriesParallel';
+import { generateVoltPowerGridRound } from '../lib/physics/voltPowerGrid';
+import { generateWaveRefractionRound } from '../lib/physics/waveRefraction';
+import { generateWaveDopplerRound } from '../lib/physics/waveDoppler';
+import { generateWaveInterferenceRound } from '../lib/physics/waveInterference';
+import { generateWaveResonanceRound } from '../lib/physics/waveResonance';
 
 export type AppTheme = 'dark' | 'light';
 export type GameModeKey =
@@ -24,7 +31,14 @@ export type GameModeKey =
   | 'volt-coulomb-tug'
   | 'volt-magnetic-maze'
   | 'volt-capacitor-race'
-  | 'volt-kirchhoff';
+  | 'volt-kirchhoff'
+  | 'volt-generator-crank'
+  | 'volt-series-parallel'
+  | 'volt-power-grid'
+  | 'wave-refraction'
+  | 'wave-doppler'
+  | 'wave-interference'
+  | 'wave-resonance';
 
 interface GameState {
   // Theme state
@@ -108,6 +122,20 @@ export const useGameStore = create<GameState>((set, get) => ({
       rounds = generateVoltCapacitorRounds();
     } else if (mode === 'volt-kirchhoff') {
       rounds = generateVoltKirchhoffRounds();
+    } else if (mode === 'volt-generator-crank') {
+      rounds = generateVoltGeneratorRounds();
+    } else if (mode === 'volt-series-parallel') {
+      rounds = [generateVoltSeriesParallelRound()];
+    } else if (mode === 'volt-power-grid') {
+      rounds = [generateVoltPowerGridRound()];
+    } else if (mode === 'wave-refraction') {
+      rounds = [generateWaveRefractionRound()];
+    } else if (mode === 'wave-doppler') {
+      rounds = [generateWaveDopplerRound()];
+    } else if (mode === 'wave-interference') {
+      rounds = [generateWaveInterferenceRound()];
+    } else if (mode === 'wave-resonance') {
+      rounds = [generateWaveResonanceRound()];
     } else {
       rounds = generateHorizontalRounds();
     }
