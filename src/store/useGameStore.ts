@@ -6,6 +6,11 @@ import { generateVectorRounds } from '../lib/physics/vectorTug';
 import { generateFreeFallRounds } from '../lib/physics/freeFall';
 import { generateElasticRounds } from '../lib/physics/elasticCollision';
 import { generateMomentumRounds } from '../lib/physics/momentumConservation';
+import { generateVoltCircuitRounds } from '../lib/physics/voltCircuitBuilder';
+import { generateVoltCoulombRounds } from '../lib/physics/voltCoulombTug';
+import { generateVoltMagneticRounds } from '../lib/physics/voltMagneticMaze';
+import { generateVoltCapacitorRounds } from '../lib/physics/voltCapacitorRace';
+import { generateVoltKirchhoffRounds } from '../lib/physics/voltKirchhoff';
 
 export type AppTheme = 'dark' | 'light';
 export type GameModeKey =
@@ -14,7 +19,12 @@ export type GameModeKey =
   | 'vector-tug'
   | 'free-fall'
   | 'elastic-collision'
-  | 'momentum-conservation';
+  | 'momentum-conservation'
+  | 'volt-circuit-builder'
+  | 'volt-coulomb-tug'
+  | 'volt-magnetic-maze'
+  | 'volt-capacitor-race'
+  | 'volt-kirchhoff';
 
 interface GameState {
   // Theme state
@@ -88,6 +98,16 @@ export const useGameStore = create<GameState>((set, get) => ({
       rounds = generateElasticRounds();
     } else if (mode === 'momentum-conservation') {
       rounds = generateMomentumRounds();
+    } else if (mode === 'volt-circuit-builder') {
+      rounds = generateVoltCircuitRounds();
+    } else if (mode === 'volt-coulomb-tug') {
+      rounds = generateVoltCoulombRounds();
+    } else if (mode === 'volt-magnetic-maze') {
+      rounds = generateVoltMagneticRounds();
+    } else if (mode === 'volt-capacitor-race') {
+      rounds = generateVoltCapacitorRounds();
+    } else if (mode === 'volt-kirchhoff') {
+      rounds = generateVoltKirchhoffRounds();
     } else {
       rounds = generateHorizontalRounds();
     }

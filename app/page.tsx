@@ -22,8 +22,6 @@ import {
   Radio,
   Globe2,
   ShieldAlert,
-  Scale,
-  Compass,
 } from 'lucide-react';
 
 export default function LandingPage() {
@@ -52,9 +50,9 @@ export default function LandingPage() {
       id: 'kinetic',
       name: 'Kinetic Class',
       subtitle: 'Mechanics & Kinematics',
-      description: 'Master horizontal projectiles, live torque balance, and 2D vector tug-of-war.',
+      description: 'Master horizontal projectiles, live torque balance, 2D vector tug, and calculation collisions.',
       icon: <Zap className="w-6 h-6 text-cyan-500" />,
-      conceptsCount: '8 Concepts (3 Active)',
+      conceptsCount: '8 Concepts (6 Active)',
       status: 'UNLOCKED',
       active: true,
       color: 'from-cyan-500/20 to-blue-600/20 border-cyan-500/40',
@@ -64,13 +62,13 @@ export default function LandingPage() {
       id: 'volt',
       name: 'Volt Class',
       subtitle: 'Electricity & Magnetism',
-      description: 'Lorentz magnetic deflection, charged particle fields, and circuit loops.',
+      description: 'Ohm\'s Law breadboard circuits, RC charging race, Coulomb tug, Lorentz magnetic maze, and Kirchhoff network.',
       icon: <Sparkles className="w-6 h-6 text-purple-400" />,
-      conceptsCount: '5 Concepts Planned',
-      status: 'POST-MVP',
-      active: false,
-      color: 'from-purple-500/10 to-indigo-600/10 border-slate-800',
-      badgeBg: 'bg-slate-800 text-slate-500 border-slate-700',
+      conceptsCount: '8 Concepts (5 Active)',
+      status: 'UNLOCKED',
+      active: true,
+      color: 'from-purple-500/20 to-indigo-600/20 border-purple-500/40',
+      badgeBg: 'bg-purple-500/20 text-purple-400 border-purple-500/40',
     },
     {
       id: 'thermo',
@@ -120,19 +118,19 @@ export default function LandingPage() {
       <section className={`relative overflow-hidden pt-12 pb-20 px-6 border-b ${
         isLight ? 'border-slate-200' : 'border-slate-800/60'
       }`}>
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-cyan-500/10 blur-[120px] rounded-full pointer-events-none" />
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[300px] bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
 
         <div className="max-w-5xl mx-auto text-center space-y-6 relative z-10">
-          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-mono text-cyan-500 shadow-md ${
+          <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-mono text-purple-400 shadow-md ${
             isLight ? 'bg-white border-slate-200' : 'bg-slate-900 border-slate-800'
           }`}>
-            <Atom className="w-4 h-4 text-cyan-500 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>GAMIFIED 2D PHYSICS SIMULATOR</span>
+            <Atom className="w-4 h-4 text-purple-400 animate-spin" style={{ animationDuration: '6s' }} />
+            <span>GAMIFIED 2D PHYSICS SIMULATOR • KINETIC & VOLT CLASSES LIVE</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-none">
             Don't learn physics. <br />
-            <span className="bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-purple-400 via-cyan-400 to-indigo-500 bg-clip-text text-transparent">
               Win at it.
             </span>
           </h1>
@@ -140,16 +138,16 @@ export default function LandingPage() {
           <p className={`text-lg sm:text-xl max-w-2xl mx-auto leading-relaxed ${
             isLight ? 'text-slate-600' : 'text-slate-300'
           }`}>
-            Ride real physics simulations with your avatar pod. Solve launch vectors, feel torque balance, and master 2D force mechanics through gameplay.
+            Ride real physics simulations with your avatar pod. Solve launch vectors, circuit breadboards, Lorentz magnetic deflection, and Kirchhoff networks!
           </p>
 
           <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/class-select"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 via-indigo-600 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-purple-500/25 flex items-center justify-center gap-2.5 transition-all active:scale-95"
             >
               <Play className="w-5 h-5 fill-slate-950" />
-              <span>PLAY NOW (GUEST MODE)</span>
+              <span>EXPLORE ALL CLASSES</span>
             </Link>
 
             <a
@@ -173,11 +171,11 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-cyan-500" />
-              <span>Matter.js & PixiJS Engine</span>
+              <span>Kinetic Class Active (6 Games)</span>
             </div>
             <div className="flex items-center gap-2">
               <CheckCircle2 className="w-4 h-4 text-purple-500" />
-              <span>Kinetic Class Active (3 Games)</span>
+              <span>Volt Class Active (5 Games)</span>
             </div>
           </div>
         </div>
@@ -187,18 +185,18 @@ export default function LandingPage() {
       <section className={`py-16 px-6 border-b ${isLight ? 'bg-white border-slate-200' : 'bg-slate-950/60 border-slate-800/60'}`}>
         <div className="max-w-6xl mx-auto">
           <div className="text-center space-y-2 mb-12">
-            <span className="text-xs font-mono text-cyan-500 tracking-wider uppercase">HOW IT WORKS</span>
+            <span className="text-xs font-mono text-purple-400 tracking-wider uppercase">HOW IT WORKS</span>
             <h2 className="text-2xl sm:text-3xl font-black">Three Steps to Master Physics</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className={`p-6 rounded-2xl border space-y-4 shadow-xl ${isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-900/80 border-slate-800'}`}>
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-500 font-bold text-lg font-mono">
+              <div className="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-bold text-lg font-mono">
                 1
               </div>
-              <h3 className="text-lg font-bold">Solve or Drag</h3>
+              <h3 className="text-lg font-bold">Calculate or Drag</h3>
               <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Calculate launch velocity, drag weights along a seesaw, or direct 2D force vectors.
+                Calculate launch velocity, resistor values, Lorentz cyclotron radius, or KCL branch currents.
               </p>
             </div>
 
@@ -208,7 +206,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-bold">Watch It Fire</h3>
               <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Hit launch and watch your cyber avatar pod ride real 2D physics simulations at 60 FPS.
+                Hit fire and watch your avatar pod ride 2D mechanics and electrodynamic simulations at 60 FPS.
               </p>
             </div>
 
@@ -218,7 +216,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-bold">See If You're Right</h3>
               <p className={`text-xs leading-relaxed ${isLight ? 'text-slate-600' : 'text-slate-300'}`}>
-                Land within ±5% for 100 XP Bullseyes and analyze ideal trajectory overlays.
+                Land within ±5% tolerance for 100 XP Bullseyes and level up your physical problem solving!
               </p>
             </div>
           </div>
@@ -268,12 +266,12 @@ export default function LandingPage() {
             isLight ? 'border-slate-300' : 'border-slate-800'
           }`}>
             <div>
-              <span className="text-xs font-mono text-cyan-500 tracking-wider uppercase">CURRICULUM ROADMAP</span>
+              <span className="text-xs font-mono text-purple-400 tracking-wider uppercase">CURRICULUM ROADMAP</span>
               <h2 className="text-3xl font-black mt-1">Physics Arena Classes</h2>
             </div>
             <Link
               href="/class-select"
-              className="text-xs font-bold text-cyan-500 hover:underline flex items-center gap-1"
+              className="text-xs font-bold text-purple-400 hover:underline flex items-center gap-1"
             >
               <span>Explore All 5 Classes</span>
               <ArrowRight className="w-4 h-4" />
@@ -286,7 +284,7 @@ export default function LandingPage() {
                 key={card.id}
                 className={`p-6 rounded-2xl bg-gradient-to-br ${card.color} border shadow-xl flex flex-col justify-between space-y-6 ${
                   isLight ? 'bg-white' : 'bg-slate-900/90'
-                } ${card.active ? 'hover:border-cyan-500/60 transition-colors' : 'opacity-75'}`}
+                } ${card.active ? 'hover:border-purple-500/60 transition-colors' : 'opacity-75'}`}
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -313,7 +311,7 @@ export default function LandingPage() {
                   {card.active ? (
                     <Link
                       href="/class-select"
-                      className="px-4 py-2 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs uppercase flex items-center gap-1 shadow-md shadow-cyan-500/20"
+                      className="px-4 py-2 rounded-xl bg-purple-500 hover:bg-purple-400 text-slate-950 font-bold text-xs uppercase flex items-center gap-1 shadow-md shadow-purple-500/20"
                     >
                       <span>Explore Games</span>
                       <Play className="w-3.5 h-3.5 fill-slate-950" />
@@ -342,16 +340,16 @@ export default function LandingPage() {
           </div>
 
           <h2 className="text-3xl font-black">
-            Ready to solve kinematics and feel physics balance?
+            Ready to solve electricity, magnetism, and kinematics?
           </h2>
 
           <div className="pt-2 flex justify-center">
             <Link
               href="/class-select"
-              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-cyan-500/25 flex items-center gap-2"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-purple-500 via-indigo-600 to-cyan-500 hover:from-purple-400 hover:to-cyan-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-purple-500/25 flex items-center gap-2"
             >
               <Play className="w-5 h-5 fill-slate-950" />
-              <span>START KINETIC CLASS MATCH</span>
+              <span>EXPLORE PHYSICS CLASSES</span>
             </Link>
           </div>
         </div>
