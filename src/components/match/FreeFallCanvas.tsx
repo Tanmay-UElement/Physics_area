@@ -2,37 +2,44 @@
 
 import React, { useEffect, useRef } from 'react';
 import * as PIXI from 'pixi.js';
-import gsap from 'gsap';
 import confetti from 'canvas-confetti';
-import { FreeFallRoundData, evaluateFreeFallTimeSubmission } from '@/lib/physics/freeFall';
-import { RoundResult } from '@/lib/physics/types';
+import { FreeFallState, FreeFallRoundData } from '@/lib/physics/freeFall';
 
 interface FreeFallCanvasProps {
   round: FreeFallRoundData;
-  userTime: number;
-  isSimulating: boolean;
+  freeFallState: FreeFallState;
   theme: 'dark' | 'light';
-  onSimulationComplete: (result: RoundResult) => void;
+  onDropComplete: () => void;
+  onToggleVectors?: () => void;
+  onToggleForceInspector?: () => void;
 }
 
 export const FreeFallCanvas: React.FC<FreeFallCanvasProps> = ({
   round,
-  userTime,
-  isSimulating,
+  freeFallState,
   theme,
-  onSimulationComplete,
+  onDropComplete,
+  onToggleVectors,
+  onToggleForceInspector,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const pixiAppRef = useRef<PIXI.Application | null>(null);
-  const heavySphereRef = useRef<PIXI.Container | null>(null);
-  const lightSphereRef = useRef<PIXI.Container | null>(null);
+
+  // State Ref to read latest values inside PIXI 60 FPS Ticker
+  const stateRef = useRef<FreeFallState>(freeFallState);
+  useEffect(() => {
+    stateRef.current = freeFallState;
+  }, [freeFallState]);
+
+  // Simulation physics state refs
+  const simTimeRef = useRef<number>(0);
+  const isFinishedRef = useRef<boolean>(false);
+
+  const objAGfxRef = useRef<PIXI.Container | null>(null);
+  const objBGfxRef = useRef<PIXI.Container | null>(null);
+  const vectorsGfxRef = useRef<PIXI.Graphics | null>(null);
 
   const isLight = theme === 'light';
-
-  const TOP_Y = 80;
-  const BOTTOM_Y = 400;
-  const TOWER_A_X = 260; // Heavy tower
-  const TOWER_B_X = 540; // Light tower
 
   useEffect(() => {
     let isMounted = true;
@@ -42,13 +49,13 @@ export const FreeFallCanvas: React.FC<FreeFallCanvasProps> = ({
       containerRef.current.innerHTML = '';
 
       const width = containerRef.current.clientWidth || 800;
-      const height = containerRef.current.clientHeight || 500;
+      const height = containerRef.current.clientHeight || 480;
 
       const app = new PIXI.Application();
       await app.init({
         width,
         height,
-        backgroundColor: isLight ? 0xf8fafc : 0x0b0f19,
+        backgroundColor: isLight ? 0x0f172a : 0x030712,
         resolution: window.devicePixelRatio || 1,
         autoDensity: true,
         antialias: true,
@@ -62,53 +69,83 @@ export const FreeFallCanvas: React.FC<FreeFallCanvasProps> = ({
       containerRef.current.appendChild(app.canvas);
       pixiAppRef.current = app;
 
-      // Grid Background
-      const gridGfx = new PIXI.Graphics();
-      app.stage.addChild(gridGfx);
-      drawGrid(gridGfx, width, height, isLight);
+      const topY = 70;
+      const bottomY = height - 60;
+      const towerAX = width * 0.35;
+      const towerBX = width * 0.65;
+      const dropHeightPx = bottomY - topY;
 
-      // Towers & Drop Platforms
-      drawTowers(app.stage, isLight);
+      // Drop Tower Chamber Backdrop & Measurement Grid
+      const bgGfx = new PIXI.Graphics();
+      app.stage.addChild(bgGfx);
 
-      // Heavy Sphere (Tower A)
-      const heavyContainer = new PIXI.Container();
-      heavyContainer.x = TOWER_A_X;
-      heavyContainer.y = TOP_Y;
+      const towerGfx = new PIXI.Graphics();
+      app.stage.addChild(towerGfx);
 
-      const heavyGfx = new PIXI.Graphics();
-      heavyGfx.circle(0, 0, 24).fill({ color: 0xef4444 });
-      heavyGfx.circle(0, 0, 24).stroke({ width: 3, color: 0xfca5a5 });
+      const vectorsGfx = new PIXI.Graphics();
+      app.stage.addChild(vectorsGfx);
+      vectorsGfxRef.current = vectorsGfx;
 
-      const heavyTxt = new PIXI.Text({
-        text: `HEAVY (${round.heavyMass}kg)`,
-        style: { fontSize: 10, fill: 0xffffff, fontWeight: 'bold' },
+      // Object A (Heavy Steel Sphere)
+      const objA = createObjectContainer('OBJECT A', 0xef4444, 22);
+      objA.x = towerAX;
+      objA.y = topY;
+      app.stage.addChild(objA);
+      objAGfxRef.current = objA;
+
+      // Object B (Lighter Sphere / Feather)
+      const objB = createObjectContainer('OBJECT B', 0x38bdf8, 14);
+      objB.x = towerBX;
+      objB.y = topY;
+      app.stage.addChild(objB);
+      objBGfxRef.current = objB;
+
+      // 60 FPS Physics Simulation Ticker Loop
+      app.ticker.add((ticker) => {
+        const state = stateRef.current;
+        const dt = ticker.deltaTime / 60; // seconds
+
+        drawDropTowerChamber(towerGfx, bgGfx, width, height, topY, bottomY, towerAX, towerBX, state);
+
+        if (objAGfxRef.current && objBGfxRef.current) {
+          const oA = objAGfxRef.current;
+          const oB = objBGfxRef.current;
+
+          if (!state.isDropReleased) {
+            // Reset to top height when paused
+            oA.y = topY;
+            oB.y = topY;
+            simTimeRef.current = 0;
+            isFinishedRef.current = false;
+          } else if (!isFinishedRef.current) {
+            simTimeRef.current += dt;
+            const t = simTimeRef.current;
+
+            // Kinematic displacement: y(t) = y0 - v0*t + 0.5*g*t^2 (in pixels)
+            // Scale: dropHeightPx represents dropHeightM
+            const pxPerMeter = dropHeightPx / Math.max(5, state.dropHeightM);
+            const displacementM = state.initialVelocityMps * t - 0.5 * state.planetGravityMps2 * Math.pow(t, 2);
+
+            const newY = topY - displacementM * pxPerMeter;
+
+            if (newY >= bottomY) {
+              oA.y = bottomY;
+              oB.y = bottomY;
+              isFinishedRef.current = true;
+
+              if (state.targetMet) {
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+              }
+              onDropComplete();
+            } else {
+              oA.y = newY;
+              oB.y = newY;
+            }
+          }
+
+          drawVectorsAndForces(vectorsGfx, oA, oB, state);
+        }
       });
-      heavyTxt.anchor.set(0.5, -1.8);
-
-      heavyContainer.addChild(heavyGfx);
-      heavyContainer.addChild(heavyTxt);
-      app.stage.addChild(heavyContainer);
-      heavySphereRef.current = heavyContainer;
-
-      // Light Sphere (Tower B)
-      const lightContainer = new PIXI.Container();
-      lightContainer.x = TOWER_B_X;
-      lightContainer.y = TOP_Y;
-
-      const lightGfx = new PIXI.Graphics();
-      lightGfx.circle(0, 0, 14).fill({ color: 0x38bdf8 });
-      lightGfx.circle(0, 0, 14).stroke({ width: 2, color: 0xbae6fd });
-
-      const lightTxt = new PIXI.Text({
-        text: `LIGHT (${round.lightMass}kg)`,
-        style: { fontSize: 10, fill: 0xffffff, fontWeight: 'bold' },
-      });
-      lightTxt.anchor.set(0.5, -1.8);
-
-      lightContainer.addChild(lightGfx);
-      lightContainer.addChild(lightTxt);
-      app.stage.addChild(lightContainer);
-      lightSphereRef.current = lightContainer;
     };
 
     initCanvas();
@@ -122,98 +159,132 @@ export const FreeFallCanvas: React.FC<FreeFallCanvasProps> = ({
     };
   }, [round.id, isLight]);
 
-  const drawGrid = (gfx: PIXI.Graphics, width: number, height: number, lightMode: boolean) => {
-    gfx.clear();
-    const gridColor = lightMode ? 0xe2e8f0 : 0x1e293b;
-    gfx.setStrokeStyle({ width: 1, color: gridColor, alpha: 0.6 });
-    for (let x = 0; x < width; x += 40) gfx.moveTo(x, 0).lineTo(x, height);
-    for (let y = 0; y < height; y += 40) gfx.moveTo(0, y).lineTo(width, y);
-    gfx.stroke();
-  };
+  const drawDropTowerChamber = (
+    towerGfx: PIXI.Graphics,
+    bgGfx: PIXI.Graphics,
+    width: number,
+    height: number,
+    topY: number,
+    bottomY: number,
+    towerAX: number,
+    towerBX: number,
+    state: FreeFallState
+  ) => {
+    bgGfx.clear();
+    towerGfx.clear();
 
-  const drawTowers = (stage: PIXI.Container, lightMode: boolean) => {
-    const gfx = new PIXI.Graphics();
+    bgGfx.rect(0, 0, width, height).fill({ color: 0x030712 });
 
-    // Tower A Structure
-    gfx.rect(TOWER_A_X - 35, TOP_Y, 70, BOTTOM_Y - TOP_Y).fill({ color: lightMode ? 0xe2e8f0 : 0x1e293b, alpha: 0.5 });
-    gfx.rect(TOWER_A_X - 35, TOP_Y, 70, BOTTOM_Y - TOP_Y).stroke({ width: 2, color: 0xef4444 });
+    // Glass Drop Chamber Shafts
+    const shaftWidth = 90;
+    towerGfx.rect(towerAX - shaftWidth / 2, topY - 10, shaftWidth, bottomY - topY + 20).fill({ color: 0x0f172a, alpha: 0.6 });
+    towerGfx.rect(towerAX - shaftWidth / 2, topY - 10, shaftWidth, bottomY - topY + 20).stroke({ width: 2, color: 0x38bdf8 });
 
-    // Tower B Structure
-    gfx.rect(TOWER_B_X - 35, TOP_Y, 70, BOTTOM_Y - TOP_Y).fill({ color: lightMode ? 0xe2e8f0 : 0x1e293b, alpha: 0.5 });
-    gfx.rect(TOWER_B_X - 35, TOP_Y, 70, BOTTOM_Y - TOP_Y).stroke({ width: 2, color: 0x38bdf8 });
+    towerGfx.rect(towerBX - shaftWidth / 2, topY - 10, shaftWidth, bottomY - topY + 20).fill({ color: 0x0f172a, alpha: 0.6 });
+    towerGfx.rect(towerBX - shaftWidth / 2, topY - 10, shaftWidth, bottomY - topY + 20).stroke({ width: 2, color: 0x38bdf8 });
 
-    // Ground Sensor
-    gfx.moveTo(100, BOTTOM_Y + 24).lineTo(700, BOTTOM_Y + 24).stroke({ width: 4, color: 0x10b981 });
-
-    stage.addChild(gfx);
-  };
-
-  // Simulation Trigger
-  useEffect(() => {
-    if (isSimulating) {
-      const evalRes = evaluateFreeFallTimeSubmission(round.correctFallTime, userTime);
-      const roundResult: RoundResult = {
-        roundNumber: round.roundNumber,
-        userVelocity: userTime,
-        correctVelocity: round.correctFallTime,
-        errorPercentage: evalRes.errorPercentage,
-        tier: evalRes.tier,
-        xpEarned: evalRes.xpEarned,
-        actualLandingX: userTime,
-        targetX: round.correctFallTime,
-        trajectoryPoints: [],
-        idealTrajectoryPoints: [],
-      };
-
-      if (heavySphereRef.current && lightSphereRef.current) {
-        heavySphereRef.current.y = TOP_Y;
-        lightSphereRef.current.y = TOP_Y;
-
-        // Fall animation duration driven by user's calculated fall time vs exact fall time
-        const animDuration = Math.max(0.5, Math.min(6.0, round.correctFallTime));
-
-        gsap.to([heavySphereRef.current, lightSphereRef.current], {
-          y: BOTTOM_Y,
-          duration: animDuration,
-          ease: 'power2.in',
-          onComplete: () => {
-            if (evalRes.tier === 'hit') {
-              confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-            }
-            onSimulationComplete(roundResult);
-          },
-        });
-      }
+    // Height Metric Grid Ticks
+    const numTicks = 8;
+    towerGfx.setStrokeStyle({ width: 1, color: 0x334155 });
+    for (let i = 0; i <= numTicks; i++) {
+      const y = topY + (i / numTicks) * (bottomY - topY);
+      towerGfx.moveTo(towerAX - shaftWidth / 2 - 10, y).lineTo(towerBX + shaftWidth / 2 + 10, y).stroke();
     }
-  }, [isSimulating]);
+
+    // Impact Pad
+    towerGfx.rect(40, bottomY, width - 80, 10).fill({ color: 0x10b981 });
+  };
+
+  const drawVectorsAndForces = (
+    gfx: PIXI.Graphics,
+    oA: PIXI.Container,
+    oB: PIXI.Container,
+    state: FreeFallState
+  ) => {
+    gfx.clear();
+    if (!state.showVectors) return;
+
+    // Gravitational Acceleration Vector Arrow (g = 9.81 m/s² ↓) for both objects
+    const gLen = Math.min(60, state.planetGravityMps2 * 4);
+    gfx.setStrokeStyle({ width: 3, color: 0xf59e0b });
+    gfx.moveTo(oA.x + 35, oA.y).lineTo(oA.x + 35, oA.y + gLen).stroke();
+    gfx.moveTo(oB.x + 35, oB.y).lineTo(oB.x + 35, oB.y + gLen).stroke();
+  };
+
+  const createObjectContainer = (title: string, colorHex: number, radius: number) => {
+    const container = new PIXI.Container();
+
+    const gfx = new PIXI.Graphics();
+    gfx.circle(0, 0, radius).fill({ color: 0x020617 });
+    gfx.circle(0, 0, radius).stroke({ width: 2.5, color: colorHex });
+
+    const txt = new PIXI.Text({
+      text: title,
+      style: { fontSize: 9, fill: colorHex, fontWeight: 'bold', fontFamily: 'monospace' },
+    });
+    txt.anchor.set(0.5);
+    txt.y = -radius - 12;
+
+    container.addChild(gfx);
+    container.addChild(txt);
+    return container;
+  };
 
   return (
-    <div className={`relative w-full h-full min-h-[480px] rounded-2xl overflow-hidden border shadow-2xl flex flex-col justify-between transition-colors ${
-      isLight ? 'bg-slate-50 border-slate-200' : 'bg-slate-950 border-slate-800'
+    <div className={`relative w-full h-full min-h-[480px] rounded-3xl overflow-hidden border shadow-2xl flex flex-col justify-between transition-colors ${
+      isLight ? 'bg-slate-900 border-slate-700' : 'bg-slate-950 border-slate-800'
     }`}>
-      <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10 pointer-events-none">
+      {/* Top Header Diagnostics Bar */}
+      <div className="absolute top-4 left-4 right-4 flex flex-wrap items-center justify-between gap-3 z-10 pointer-events-none">
         <div className={`flex items-center gap-3 px-4 py-2 rounded-xl border text-xs shadow-md backdrop-blur-md ${
-          isLight ? 'bg-white/90 border-slate-200 text-slate-700' : 'bg-slate-900/80 border-slate-800 text-slate-300'
+          isLight ? 'bg-slate-800/90 border-slate-700 text-slate-200' : 'bg-slate-900/80 border-slate-800 text-slate-300'
         }`}>
-          <div>Height: <span className="font-mono font-bold text-cyan-500">{round.dropHeight} m</span></div>
+          <div>Height: <span className="font-mono font-bold text-sky-400">{freeFallState.dropHeightM} m</span></div>
           <div className="w-[1px] h-4 bg-slate-400/40" />
-          <div>Gravity: <span className="font-mono font-bold text-amber-500">9.8 m/s²</span></div>
+          <div>Gravity: <span className="font-mono font-bold text-amber-400">{freeFallState.planetGravityMps2} m/s² ({freeFallState.planetName})</span></div>
           <div className="w-[1px] h-4 bg-slate-400/40" />
-          <div>Calculated Time: <span className="font-mono font-bold text-emerald-500">{userTime} s</span></div>
+          <div>Calculated Time: <span className="font-mono font-bold text-emerald-400">{freeFallState.calculatedFallTimeSec} s</span></div>
         </div>
 
-        <div className="px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 text-xs font-mono font-bold">
-          FREE FALL ENGINE
+        {/* Overlay Toggles */}
+        <div className="flex items-center gap-2 pointer-events-auto">
+          <button
+            type="button"
+            onClick={onToggleVectors}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all ${
+              freeFallState.showVectors
+                ? 'bg-amber-500/20 border-amber-500 text-amber-300'
+                : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            VECTORS (g ↓)
+          </button>
+          <button
+            type="button"
+            onClick={onToggleForceInspector}
+            className={`px-3 py-1.5 rounded-lg border text-xs font-mono font-bold transition-all ${
+              freeFallState.showForceInspector
+                ? 'bg-emerald-500/20 border-emerald-500 text-emerald-300'
+                : 'bg-slate-900/90 border-slate-700 text-slate-300 hover:bg-slate-800'
+            }`}
+          >
+            FORCE INSPECTOR (F=mg)
+          </button>
         </div>
       </div>
 
       <div ref={containerRef} className="w-full h-full flex-1" />
 
+      {/* Footer Status Bar */}
       <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between pointer-events-none z-10">
-        <div className={`text-xs font-mono px-3 py-1.5 rounded-lg border ${
-          isLight ? 'bg-white/90 border-slate-200 text-slate-600' : 'bg-slate-900/80 border-slate-800 text-slate-400'
+        <div className={`text-xs font-mono px-3.5 py-1.5 rounded-lg border ${
+          freeFallState.isComplete
+            ? 'bg-emerald-950/80 border-emerald-500/40 text-emerald-300'
+            : freeFallState.predictionLocked
+            ? 'bg-amber-950/80 border-amber-500/40 text-amber-300'
+            : 'bg-slate-900/80 border-slate-800 text-slate-300'
         }`}>
-          💡 Calculate fall time t = √((2h)/g) and test the drop simulation!
+          {freeFallState.statusText}
         </div>
       </div>
     </div>

@@ -2,18 +2,20 @@
 
 import React from 'react';
 import { RoundResult } from '@/lib/physics/types';
-import { Trophy, ArrowRight } from 'lucide-react';
+import { Trophy, ArrowRight, RotateCcw } from 'lucide-react';
 
 interface ResultModalProps {
   result: RoundResult | null;
   isLastRound: boolean;
   onNext: () => void;
+  onPlayAgain?: () => void;
 }
 
 export const ResultModal: React.FC<ResultModalProps> = ({
   result,
   isLastRound,
   onNext,
+  onPlayAgain,
 }) => {
   if (!result) return null;
 
@@ -28,7 +30,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
         badgeText: 'text-emerald-400',
         badgeBorder: 'border-emerald-500/30',
         title: 'BULLSEYE! DIRECT HIT! 🎯',
-        desc: `Unstoppable precision! You calculated the exact horizontal velocity within ${result.errorPercentage}% tolerance.`,
+        desc: `Unstoppable precision! You calculated the exact physics result within ${result.errorPercentage}% tolerance.`,
       }
     : isClose
     ? {
@@ -38,7 +40,7 @@ export const ResultModal: React.FC<ResultModalProps> = ({
         badgeText: 'text-amber-400',
         badgeBorder: 'border-amber-500/30',
         title: 'SO CLOSE! NEAR MISS! 🤏',
-        desc: `You were off by just ${result.errorPercentage}%. Adjust your velocity slightly next time to nail the bullseye!`,
+        desc: `You were off by just ${result.errorPercentage}%. Adjust your parameters next time to nail the bullseye!`,
       }
     : {
         bg: 'bg-slate-900/95',
@@ -46,15 +48,21 @@ export const ResultModal: React.FC<ResultModalProps> = ({
         badgeBg: 'bg-cyan-500/20',
         badgeText: 'text-cyan-400',
         badgeBorder: 'border-cyan-500/30',
-        title: 'NICE TRY! GRAVITY CAUGHT YOU 🚀',
-        desc: `Your avatar landed ${
-          result.actualLandingX > result.targetX ? 'past' : 'short of'
-        } the target. Notice the cyan ideal trajectory path overlay on the canvas!`,
+        title: 'NICE TRY! GRAVITY / PHYSICS CAUGHT YOU 🚀',
+        desc: `Your trajectory or calculation was off by ${result.errorPercentage}%. Inspect the live vector HUD to optimize your setup!`,
       };
+
+  const handlePlayAgainClick = () => {
+    if (onPlayAgain) {
+      onPlayAgain();
+    } else {
+      window.location.reload();
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-in zoom-in-95 duration-200">
-      <div className={`relative w-full max-w-md ${tierTheme.bg} border ${tierTheme.border} rounded-2xl p-6 shadow-2xl space-y-6 text-slate-100`}>
+      <div className={`relative w-full max-w-md ${tierTheme.bg} border ${tierTheme.border} rounded-3xl p-6 shadow-2xl space-y-6 text-slate-100`}>
         {/* Tier Header */}
         <div className="text-center space-y-2">
           <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono font-bold border ${tierTheme.badgeBg} ${tierTheme.badgeText} ${tierTheme.badgeBorder}`}>
@@ -70,37 +78,43 @@ export const ResultModal: React.FC<ResultModalProps> = ({
         </div>
 
         {/* Math & Telemetry Breakdown Card */}
-        <div className="bg-slate-950/70 rounded-xl p-4 border border-slate-800 space-y-3 text-xs font-mono">
+        <div className="bg-slate-950/70 rounded-2xl p-4 border border-slate-800 space-y-3 text-xs font-mono">
           <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-            <span className="text-slate-400">Your Velocity (v):</span>
-            <span className="font-bold text-white text-sm">{result.userVelocity} m/s</span>
+            <span className="text-slate-400">Your Calculated Input:</span>
+            <span className="font-bold text-white text-sm">{result.userVelocity}</span>
           </div>
           <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-            <span className="text-slate-400">Exact Ideal Velocity:</span>
-            <span className="font-bold text-emerald-400 text-sm">{result.correctVelocity} m/s</span>
+            <span className="text-slate-400">Exact Ideal Physics Result:</span>
+            <span className="font-bold text-emerald-400 text-sm">{result.correctVelocity}</span>
           </div>
-          <div className="flex justify-between items-center pb-2 border-b border-slate-800">
-            <span className="text-slate-400">Landing Error:</span>
+          <div className="flex justify-between items-center">
+            <span className="text-slate-400">Precision Error:</span>
             <span className={`font-bold ${isHit ? 'text-emerald-400' : isClose ? 'text-amber-400' : 'text-cyan-400'}`}>
               {result.errorPercentage}%
             </span>
           </div>
-          <div className="flex justify-between items-center">
-            <span className="text-slate-400">Landing Position:</span>
-            <span className="text-slate-200">
-              {result.actualLandingX}m <span className="text-slate-500">(Target: {result.targetX}m)</span>
-            </span>
-          </div>
         </div>
 
-        {/* Continue Action Button */}
-        <button
-          onClick={onNext}
-          className="w-full py-3.5 px-6 rounded-xl font-bold text-xs uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all"
-        >
-          <span>{isLastRound ? 'VIEW MATCH SUMMARY' : 'NEXT ROUND'}</span>
-          <ArrowRight className="w-4 h-4" />
-        </button>
+        {/* Action Buttons: Play Again & Next/Continue */}
+        <div className="grid grid-cols-2 gap-3 pt-2">
+          <button
+            type="button"
+            onClick={handlePlayAgainClick}
+            className="py-3.5 px-4 rounded-xl font-mono font-bold text-xs uppercase tracking-wider bg-slate-800 hover:bg-slate-700 border border-slate-700 text-cyan-300 shadow-md flex items-center justify-center gap-2 transition-all active:scale-95"
+          >
+            <RotateCcw className="w-4 h-4" />
+            <span>PLAY AGAIN</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={onNext}
+            className="py-3.5 px-4 rounded-xl font-mono font-bold text-xs uppercase tracking-wider bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 shadow-lg shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all active:scale-95"
+          >
+            <span>{isLastRound ? 'CONTINUE' : 'NEXT ROUND'}</span>
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </div>
       </div>
     </div>
   );

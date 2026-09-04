@@ -63,6 +63,10 @@ interface GameState {
   isSimulating: boolean;
   simulationResult: RoundResult | null;
 
+  // Active agent state
+  activeAgentId: 'aura-9' | 'titan-x' | 'synapse' | 'nova';
+  setActiveAgent: (id: 'aura-9' | 'titan-x' | 'synapse' | 'nova') => void;
+
   // Actions
   startMatch: (mode?: GameModeKey) => void;
   recordRoundResult: (result: RoundResult) => void;
@@ -99,6 +103,9 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   isSimulating: false,
   simulationResult: null,
+
+  activeAgentId: 'aura-9',
+  setActiveAgent: (id) => set({ activeAgentId: id }),
 
   startMatch: (mode = 'trick-shot') => {
     let rounds: RoundData[] = [];

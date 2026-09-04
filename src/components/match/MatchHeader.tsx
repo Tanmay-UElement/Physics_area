@@ -3,15 +3,24 @@
 import React from 'react';
 import Link from 'next/link';
 import { useGameStore } from '@/store/useGameStore';
-import { Trophy, HelpCircle, Atom, Sun, Moon } from 'lucide-react';
+import { Trophy, HelpCircle, Atom, Sun, Moon, RotateCcw, Bot } from 'lucide-react';
 
 interface MatchHeaderProps {
   onOpenTutorial: () => void;
+  onPlayAgain?: () => void;
 }
 
-export const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenTutorial }) => {
+export const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenTutorial, onPlayAgain }) => {
   const { currentRoundIndex, rounds, sessionXP, theme, toggleTheme } = useGameStore();
   const isLight = theme === 'light';
+
+  const handlePlayAgainClick = () => {
+    if (onPlayAgain) {
+      onPlayAgain();
+    } else {
+      window.location.reload();
+    }
+  };
 
   return (
     <header className={`w-full border-b px-6 py-4 flex items-center justify-between sticky top-0 z-40 backdrop-blur-md transition-colors ${
@@ -68,7 +77,21 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenTutorial }) => {
       </div>
 
       {/* Right Toolbar */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
+        {/* PLAY AGAIN Button */}
+        <button
+          onClick={handlePlayAgainClick}
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all active:scale-95 ${
+            isLight
+              ? 'bg-cyan-50 hover:bg-cyan-100 border-cyan-300 text-cyan-700'
+              : 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-cyan-400'
+          }`}
+          title="Play Again / Restart Game"
+        >
+          <RotateCcw className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">PLAY AGAIN</span>
+        </button>
+
         {/* Theme Toggle Button */}
         <button
           onClick={toggleTheme}
@@ -90,6 +113,20 @@ export const MatchHeader: React.FC<MatchHeaderProps> = ({ onOpenTutorial }) => {
             <span className="font-mono font-extrabold text-amber-500 text-sm">{sessionXP}</span>
           </div>
         </div>
+
+        {/* AI Agent Selection Link */}
+        <Link
+          href="/agent-select"
+          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all ${
+            isLight
+              ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100'
+              : 'bg-slate-900 border-purple-500/40 text-purple-300 hover:bg-slate-800'
+          }`}
+          title="Select AI Pod Agent Companion"
+        >
+          <Bot className="w-4 h-4 text-purple-400" />
+          <span className="hidden sm:inline">AGENTS</span>
+        </Link>
 
         {/* Tutorial Button */}
         <button
