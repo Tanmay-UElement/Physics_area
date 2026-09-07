@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { RoundData, RoundResult, SessionStats } from '../lib/physics/types';
+import { ClassXP, getClassGroup } from '../lib/pod/podPhysicsTypes';
 import { generateHorizontalRounds } from '../lib/physics/horizontalProjectile';
 import { generateLeverRounds } from '../lib/physics/leverBalance';
 import { generateVectorRounds } from '../lib/physics/vectorTug';
@@ -67,6 +68,18 @@ interface GameState {
   activeAgentId: 'aura-9' | 'titan-x' | 'synapse' | 'nova';
   setActiveAgent: (id: 'aura-9' | 'titan-x' | 'synapse' | 'nova') => void;
 
+  // ── Pod physics state ─────────────────────────────────────────────────────
+  /** Current hint aperture tier (0=closed, 1=nudge, 2=formula, 3=setup) */
+  podHintTier: 0 | 1 | 2 | 3;
+  /** Unix ms of last player input — used for idle sensing */
+  lastInputTimestamp: number;
+  /** Per-class XP for agent maturity system */
+  classXP: ClassXP;
+  /** Latest player input value (raw, for error-trend tracking) */
+  lastPlayerInputValue: number | null;
+  /** Previous player input value (for trend comparison) */
+  prevPlayerInputValue: number | null;
+
   // Actions
   startMatch: (mode?: GameModeKey) => void;
   recordRoundResult: (result: RoundResult) => void;
@@ -74,6 +87,12 @@ interface GameState {
   restartCurrentMatch: () => void;
   setSimulating: (simulating: boolean) => void;
   setHasCompletedTutorial: (completed: boolean) => void;
+  /** Cycle pod hint tier: 0→1→2→3→0 */
+  cyclePodHintTier: () => void;
+  /** Reset hint tier to closed */
+  closePodHint: () => void;
+  /** Record a player input value for idle and trend sensing */
+  recordPlayerInput: (value: number) => void;
 }
 
 export const useGameStore = create<GameState>((set, get) => ({
@@ -106,6 +125,13 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   activeAgentId: 'aura-9',
   setActiveAgent: (id) => set({ activeAgentId: id }),
+
+  // Pod physics initial state
+  podHintTier: 0,
+  lastInputTimestamp: Date.now(),
+  classXP: { kinetic: 0, volt: 0, wave: 0 },
+  lastPlayerInputValue: null,
+  prevPlayerInputValue: null,
 
   startMatch: (mode = 'trick-shot') => {
     let rounds: RoundData[] = [];
@@ -156,6 +182,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       isMatchCompleted: false,
       isSimulating: false,
       simulationResult: null,
+      // Reset pod state for new match
+      podHintTier: 0,
+      lastInputTimestamp: Date.now(),
+      lastPlayerInputValue: null,
+      prevPlayerInputValue: null,
     });
   },
 
@@ -188,11 +219,17 @@ export const useGameStore = create<GameState>((set, get) => ({
       });
     }
 
+    // Update per-class XP for the maturity system
+    const classGroup = getClassGroup(get().activeMode);
+    const updatedClassXP = { ...get().classXP };
+    updatedClassXP[classGroup] = (updatedClassXP[classGroup] || 0) + result.xpEarned;
+
     set({
       roundResults: updatedResults,
       sessionXP: newXP,
       simulationResult: result,
       isMatchCompleted: isMatchEnd,
+      classXP: updatedClassXP,
       sessionStats: {
         totalMatches,
         totalRoundsPlayed,
@@ -232,4 +269,16 @@ export const useGameStore = create<GameState>((set, get) => ({
 
   setSimulating: (simulating: boolean) => set({ isSimulating: simulating }),
   setHasCompletedTutorial: (completed: boolean) => set({ hasCompletedTutorial: completed }),
+
+  cyclePodHintTier: () => set((state) => ({
+    podHintTier: ((state.podHintTier + 1) % 4) as 0 | 1 | 2 | 3,
+  })),
+
+  closePodHint: () => set({ podHintTier: 0 }),
+
+  recordPlayerInput: (value: number) => set((state) => ({
+    prevPlayerInputValue: state.lastPlayerInputValue,
+    lastPlayerInputValue: value,
+    lastInputTimestamp: Date.now(),
+  })),
 }));

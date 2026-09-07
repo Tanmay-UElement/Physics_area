@@ -1,8 +1,24 @@
 @import "tailwindcss";
 
+/* ─── Design System Tokens ────────────────────────────────────────── */
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  /* Arena brand palette */
+  --arena-cyan: #22d3ee;
+  --arena-blue: #3b82f6;
+  --arena-indigo: #6366f1;
+  --arena-purple: #a855f7;
+  --arena-amber: #f59e0b;
+  --arena-emerald: #10b981;
+
+  /* Glow radii */
+  --glow-sm: 0 0 12px rgba(34, 211, 238, 0.3);
+  --glow-md: 0 0 30px rgba(34, 211, 238, 0.4);
+  --glow-lg: 0 0 60px rgba(34, 211, 238, 0.5);
+  --glow-purple: 0 0 30px rgba(168, 85, 247, 0.4);
+  --glow-amber: 0 0 20px rgba(245, 158, 11, 0.35);
 }
 
 @theme inline {
@@ -14,13 +30,434 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #020817;
+    --foreground: #e2e8f0;
   }
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans, 'Inter', 'Segoe UI', Arial, sans-serif);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
+
+/* ─── Custom Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.8);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.25);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.5);
+}
+
+/* ─── Custom Range Slider ──────────────────────────────────────────── */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 99px;
+  outline: none;
+  cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #22d3ee;
+  border: 2px solid rgba(15, 23, 42, 0.8);
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.5);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  box-shadow: 0 0 14px rgba(34, 211, 238, 0.75);
+}
+input[type="range"]:disabled::-webkit-slider-thumb {
+  background: #475569;
+  box-shadow: none;
+}
+
+/* ─── Keyframe Animations ──────────────────────────────────────────── */
+
+/* Floating bob */
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50%       { transform: translateY(-8px); }
+}
+
+/* Slow spin */
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Pulse glow ring */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.4; box-shadow: 0 0 12px rgba(34, 211, 238, 0.3); }
+  50%      { opacity: 0.9; box-shadow: 0 0 30px rgba(34, 211, 238, 0.7); }
+}
+
+/* Radar sweep ring */
+@keyframes radar-ring {
+  0%   { transform: scale(0.9); opacity: 0.8; }
+  100% { transform: scale(1.8); opacity: 0; }
+}
+
+/* Gradient shimmer sweep */
+@keyframes shimmer {
+  0%   { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+/* Fade-in slide-up */
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Fade-in */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Number ticker */
+@keyframes count-up {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Horizontal scroll marquee */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* Border glow rotation */
+@keyframes border-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Typing cursor blink */
+@keyframes cursor-blink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* Star twinkle */
+@keyframes twinkle {
+  0%, 100% { opacity: 0.2; transform: scale(1); }
+  50%       { opacity: 0.9; transform: scale(1.3); }
+}
+
+/* ─── Animation Utility Classes ────────────────────────────────────── */
+.animate-float            { animation: float 4s ease-in-out infinite; }
+.animate-spin-slow        { animation: spin-slow 8s linear infinite; }
+.animate-pulse-glow       { animation: pulse-glow 2.5s ease-in-out infinite; }
+.animate-radar-ring       { animation: radar-ring 2s ease-out infinite; }
+.animate-shimmer          { animation: shimmer 2.5s linear infinite; }
+.animate-fade-up          { animation: fade-up 0.5s ease-out forwards; }
+.animate-fade-in          { animation: fade-in 0.4s ease-out forwards; }
+.animate-marquee          { animation: marquee 22s linear infinite; }
+.animate-cursor-blink     { animation: cursor-blink 1.2s step-end infinite; }
+.animate-twinkle          { animation: twinkle 3s ease-in-out infinite; }
+
+/* Stagger delays */
+.delay-100  { animation-delay: 100ms; }
+.delay-200  { animation-delay: 200ms; }
+.delay-300  { animation-delay: 300ms; }
+.delay-400  { animation-delay: 400ms; }
+.delay-500  { animation-delay: 500ms; }
+.delay-700  { animation-delay: 700ms; }
+.delay-1000 { animation-delay: 1000ms; }
+.delay-1500 { animation-delay: 1500ms; }
+.delay-2000 { animation-delay: 2000ms; }
+
+/* ─── Glassmorphism ────────────────────────────────────────────────── */
+.glass-dark {
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(148, 163, 184, 0.1);
+}
+.glass-light {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+}
+
+/* ─── Shimmer gradient text ────────────────────────────────────────── */
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    #22d3ee 0%,
+    #a855f7 30%,
+    #6366f1 60%,
+    #22d3ee 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 3s linear infinite;
+}
+
+/* ─── Gradient border card ────────────────────────────────────────── */
+.gradient-border {
+  position: relative;
+  border: none;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  background: linear-gradient(135deg, rgba(34,211,238,0.5), rgba(168,85,247,0.5), rgba(99,102,241,0.5));
+  z-index: -1;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.gradient-border:hover::before {
+  opacity: 1;
+}
+
+/* ─── Card hover lift ──────────────────────────────────────────────── */
+.card-lift {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
+}
+.card-lift:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4), 0 0 20px rgba(34, 211, 238, 0.1);
+}
+
+/* ─── Input overrides ──────────────────────────────────────────────── */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+/* ─── Section scroll fade-in via CSS ─────────────────────────────── */
+.scroll-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.scroll-reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ─── Neon text glow ──────────────────────────────────────────────── */
+.neon-cyan  { text-shadow: 0 0 8px rgba(34, 211, 238, 0.6), 0 0 20px rgba(34, 211, 238, 0.3); }
+.neon-purple{ text-shadow: 0 0 8px rgba(168, 85, 247, 0.6), 0 0 20px rgba(168, 85, 247, 0.3); }
+.neon-amber { text-shadow: 0 0 8px rgba(245, 158, 11, 0.6), 0 0 20px rgba(245, 158, 11, 0.3); }
+
+/* ─── Animate-in (Tailwind compat shim) ──────────────────────────── */
+@keyframes zoom-in-95 {
+  from { opacity: 0; transform: scale(0.95); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes slide-in-from-bottom-2 {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-from-top-2 {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.animate-in { animation-fill-mode: both; animation-duration: 200ms; }
+.zoom-in-95 { animation-name: zoom-in-95; }
+.slide-in-from-bottom-2 { animation-name: slide-in-from-bottom-2; }
+.slide-in-from-top-2 { animation-name: slide-in-from-top-2; }
+.fade-in { animation-name: fade-in; }
+.duration-200 { animation-duration: 200ms; }
+.duration-300 { animation-duration: 300ms; }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DIEGETIC PHYSICS-BODY POD ANIMATIONS
+   All driven by CSS custom properties set inline from usePodPhysics hook.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── TITAN-X: Lever beam tilt + spring wobble ──────────────────────────── */
+@keyframes lever-tilt {
+  0%   { transform: rotate(var(--pod-tilt, 0deg)) scaleY(1); }
+  100% { transform: rotate(var(--pod-tilt, 0deg)) scaleY(1); }
+}
+@keyframes lever-wobble {
+  0%   { transform: rotate(var(--pod-tilt, 0deg)); }
+  15%  { transform: rotate(calc(var(--pod-tilt, 0deg) * -0.4)); }
+  30%  { transform: rotate(calc(var(--pod-tilt, 0deg) * 0.7)); }
+  45%  { transform: rotate(calc(var(--pod-tilt, 0deg) * -0.25)); }
+  60%  { transform: rotate(calc(var(--pod-tilt, 0deg) * 0.4)); }
+  75%  { transform: rotate(calc(var(--pod-tilt, 0deg) * -0.1)); }
+  100% { transform: rotate(var(--pod-tilt, 0deg)); }
+}
+.pod-lever-wobble {
+  animation: lever-wobble 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) forwards;
+}
+
+/* ── SYNAPSE: Charge ring fill (exponential-feel curve) ────────────────── */
+@keyframes charge-fill {
+  from { stroke-dashoffset: var(--pod-charge-from, 100); }
+  to   { stroke-dashoffset: var(--pod-charge-to, 0); }
+}
+@keyframes voltage-flicker {
+  0%, 100% { opacity: 1; }
+  20%       { opacity: 0.3; }
+  40%       { opacity: 0.8; }
+  60%       { opacity: 0.15; }
+  80%       { opacity: 0.9; }
+}
+.pod-voltage-flicker {
+  animation: voltage-flicker 0.4s ease-in-out 3;
+}
+
+/* ── NOVA: Echo orb drift ──────────────────────────────────────────────── */
+@keyframes echo-drift {
+  0%   { transform: translateX(0) translateY(0) scale(1); opacity: var(--pod-echo-opacity, 0.6); }
+  50%  { transform: translateX(var(--pod-echo-x, 10px)) translateY(-3px) scale(0.95); opacity: calc(var(--pod-echo-opacity, 0.6) * 0.8); }
+  100% { transform: translateX(var(--pod-echo-x, 10px)) translateY(0) scale(0.95); opacity: var(--pod-echo-opacity, 0.6); }
+}
+@keyframes constructive-flash {
+  0%   { filter: brightness(1); }
+  30%  { filter: brightness(2.5) saturate(1.5); }
+  100% { filter: brightness(1); }
+}
+.pod-constructive-flash {
+  animation: constructive-flash 0.5s ease-out forwards;
+}
+
+/* ── AURA-9: Ghost arc path dash animation ─────────────────────────────── */
+@keyframes arc-dash {
+  from { stroke-dashoffset: 200; opacity: 0.8; }
+  to   { stroke-dashoffset: 0;   opacity: 0.3; }
+}
+.pod-arc-dash {
+  animation: arc-dash 1.2s ease-out forwards;
+  stroke-dasharray: 6 4;
+}
+
+/* ── Hint aperture rings ────────────────────────────────────────────────── */
+@keyframes aperture-expand {
+  0%   { transform: scale(0.7); opacity: 0; }
+  60%  { transform: scale(1.08); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+@keyframes aperture-close {
+  from { transform: scale(1); opacity: 1; }
+  to   { transform: scale(0.7); opacity: 0; }
+}
+.pod-aperture-ring {
+  animation: aperture-expand 0.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.pod-aperture-ring-close {
+  animation: aperture-close 0.2s ease-in forwards;
+}
+
+/* ── Maturity aura ring pulse (tier-dependent intensity) ───────────────── */
+@keyframes aura-pulse-recruit  { 0%,100% { opacity: 0.2; transform: scale(1);    } 50% { opacity: 0.4; transform: scale(1.05); } }
+@keyframes aura-pulse-cadet    { 0%,100% { opacity: 0.35; transform: scale(1);   } 50% { opacity: 0.65; transform: scale(1.1); } }
+@keyframes aura-pulse-veteran  { 0%,100% { opacity: 0.5; transform: scale(1);    } 50% { opacity: 0.85; transform: scale(1.15); } }
+@keyframes aura-pulse-elite    { 0%,100% { opacity: 0.7; transform: scale(1);    } 50% { opacity: 1; transform: scale(1.22); } }
+.pod-aura-0 { animation: aura-pulse-recruit 3s ease-in-out infinite; }
+.pod-aura-1 { animation: aura-pulse-cadet   2.5s ease-in-out infinite; }
+.pod-aura-2 { animation: aura-pulse-veteran 2s ease-in-out infinite; }
+.pod-aura-3 { animation: aura-pulse-elite   1.6s ease-in-out infinite; }
+
+/* ── Posture-mode visual states ─────────────────────────────────────────── */
+@keyframes pod-anxious-flicker {
+  0%,100% { opacity: 1; filter: hue-rotate(0deg); }
+  25%     { opacity: 0.7; filter: hue-rotate(20deg); }
+  50%     { opacity: 0.9; filter: hue-rotate(-10deg); }
+  75%     { opacity: 0.65; filter: hue-rotate(15deg); }
+}
+@keyframes pod-warning-pulse {
+  0%,100% { box-shadow: 0 0 12px rgba(239, 68, 68, 0.3); }
+  50%     { box-shadow: 0 0 28px rgba(239, 68, 68, 0.7); }
+}
+@keyframes pod-confident-glow {
+  0%,100% { box-shadow: 0 0 16px rgba(52, 211, 153, 0.4), 0 0 32px rgba(52, 211, 153, 0.2); }
+  50%     { box-shadow: 0 0 28px rgba(52, 211, 153, 0.7), 0 0 50px rgba(52, 211, 153, 0.35); }
+}
+.pod-posture-anxious  { animation: pod-anxious-flicker 0.8s ease-in-out infinite; }
+.pod-posture-warning  { animation: pod-warning-pulse 1.2s ease-in-out infinite; }
+.pod-posture-confident { animation: pod-confident-glow 2s ease-in-out infinite; }
+
+/* ── Hold gesture: ghost demo flash ─────────────────────────────────────── */
+@keyframes ghost-demo-in {
+  from { opacity: 0; transform: scale(0.85) translateY(8px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes ghost-demo-out {
+  from { opacity: 1; }
+  to   { opacity: 0; transform: scale(0.9) translateY(-6px); }
+}
+.pod-ghost-demo-in  { animation: ghost-demo-in  0.2s ease-out forwards; }
+.pod-ghost-demo-out { animation: ghost-demo-out 0.3s ease-in  0.8s forwards; }
+
+/* ── Hit celebration ─────────────────────────────────────────────────────── */
+@keyframes pod-hit-celebrate {
+  0%   { transform: scale(1) rotate(0deg); }
+  20%  { transform: scale(1.3) rotate(-8deg); }
+  40%  { transform: scale(1.2) rotate(6deg); }
+  60%  { transform: scale(1.25) rotate(-4deg); }
+  80%  { transform: scale(1.1) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+.pod-celebrate { animation: pod-hit-celebrate 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+/* ── Pod 2.0 — idle & posture bob animations ─────────────────────────────── */
+@keyframes pod-idle-bob {
+  from { transform: translateY(0px); }
+  to   { transform: translateY(-4px); }
+}
+@keyframes pod-bob {
+  0%   { transform: translateY(0px) rotate(-2deg); }
+  50%  { transform: translateY(-6px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(-2deg); }
+}
+@keyframes pod-glow-pulse {
+  from { transform: translateY(0px) scale(1); }
+  to   { transform: translateY(-3px) scale(1.03); }
+}
+
+/* ── Pod 2.0 — aperture hint ring pulse ─────────────────────────────────── */
+@keyframes aperture-pulse {
+  from { opacity: 0.7; transform: scale(1); }
+  to   { opacity: 1;   transform: scale(1.04); }
+}
+
+/* ── Pod 2.0 — TITAN-X over-tilt wobble ─────────────────────────────────── */
+@keyframes tilt-wobble {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(4deg); }
+  75%  { transform: rotate(-4deg); }
+  100% { transform: rotate(0deg); }
+}
+

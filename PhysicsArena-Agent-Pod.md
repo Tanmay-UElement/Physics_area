@@ -1,116 +1,203 @@
-# PhysicsArena — Agent Pod
-### An In-Game AI Companion That Explains What Each Game Is and How to Play It
+# PhysicsArena — Agent Pod v2.0
+### Physics-Embodied Companion System
+
+> This document supersedes the original `PhysicsArena-Agent-Pod.md` (v1), which described a text-hint chatbot model. Pod 2.0 replaces that approach entirely.
 
 ---
 
-## 1. What Is Agent Pod
+## 1. The Core Principle — Diegetic Embodiment
 
-**Agent Pod is a small floating companion avatar that lives alongside the player through every page and round.** Its only job is to remove confusion — "what is this round about," "what am I supposed to do," "what does this formula mean" — without ever just handing over the answer.
+> **The companion doesn't explain the physics. The companion's own body obeys the physics.**
 
-Think of it as a cross between a game tutorial NPC and a contextual help chatbot, except it's visually present as a character (a "pod"), not a hidden help-menu link.
+Each Agent Pod's animation state is wired into the *same* physics/math engine used for the simulation it is mentoring. It is a second, smaller simulation running in parallel — not a UI overlay.
 
-**Why this matters for this product specifically:** because every concept in Kinetic and Volt uses a *different* game mechanic (drag, crank, tap-timing, wiring, etc.), a first-time player hitting Concept #5 has no guarantee they'll intuitively know the controls just because they learned Concept #1. Agent Pod is the answer to "how does the player learn a brand-new mini-game every round without a wall of instructions."
-
----
-
-## 2. Where Agent Pod Appears
-
-| Page | Pod Behavior |
-|---|---|
-| Landing | Idle in a corner, small wave animation, optional 1-line greeting bubble ("New here? I'll show you around.") |
-| Class Select | Explains what each class is about on hover/tap of a class card (short blurb) |
-| Tutorial overlay | **Pod replaces the generic tutorial overlay entirely** — Pod itself walks the player through "This is your avatar," "Solve the physics," "Watch it happen," in its own voice/personality instead of a plain UI overlay |
-| Match (Gameplay) | Always present in a corner, minimized by default; auto-expands with a short "Here's the goal" bubble at the start of each new round/concept; tappable any time for more help |
-| Match Summary | Reacts to performance (encouraging comment either way), never judgmental on a miss |
-| Session Stats | Optional: light commentary like "You're getting faster at Predict & Reveal rounds" |
-
-**Key UX rule:** Pod is never forced full-screen or blocking. It's a corner presence the player can expand or ignore — this keeps it from feeling like a nagging tutorial popup.
-
----
-
-## 3. Visual Design of Pod
-
-- A small **floating orb/drone-style character** (not a humanoid mascot) — fits the esports/arena aesthetic better than a cutesy sidekick, and is cheap to animate (glow, hover-bob, tilt) without needing a full character rig
-- Color accents shift per class (teal/blue for Kinetic, could shift electric-yellow for Volt later) — ties Pod visually to the "class" identity already established in class cards
-- Idle animation: gentle hover-bob + occasional blink/pulse (reuses the same GSAP idle-loop pattern already used for the player avatar — no new animation system needed)
-- Speaking state: small glow pulse + chat bubble appears above it (text-based, not voice, for MVP)
-
----
-
-## 4. Core Features
-
-### 4.1 "Explain This Round" (primary feature)
-- Auto-triggered once per concept, first time a player enters it: a short (2–3 sentence) bubble explaining **what the round is about and what to do** — not the formula, not the answer, just the goal and controls
-- Example (Concept #1, Horizontal Projectile): *"Your launcher's on a platform, and the target's straight ahead. Figure out how fast to launch so gravity brings you down right on it. Type your velocity guess and hit Launch."*
-- Example (Volt Concept #5, Generator Crank): *"Hold the crank slider and find the right speed — too slow and the bulb stays dark, too fast and you'll blow it. Watch the voltage meter to know how close you are."*
-
-### 4.2 "Ask Pod" (on-demand chat)
-- Tap Pod any time → small chat panel opens → player can type a question ("what does τ mean," "why did I miss," "what's Ohm's law again")
-- Pod answers **conceptually**, using the actual round's live data (target values, current attempt) for context — but is explicitly instructed never to output the exact numeric answer the player needs to submit
-- This is the one part of the product that needs a live LLM call (see Section 6) rather than static scripted text, since questions are open-ended
-
-### 4.3 Hint Ladder (progressive help, not instant answers)
-Three tiers, unlocked in order if the player is struggling (e.g., after 2 misses on the same round):
-1. **Nudge** — restates the goal, no formula ("Remember, you need the time it takes to fall first.")
-2. **Formula reveal** — gives the relevant equation, no numbers plugged in
-3. **Worked structure** — shows *how* to set up the calculation with the round's actual known values, but still requires the player to do the final arithmetic and type the answer
-
-This protects the core learning loop (from the original Product Document) — Pod assists, but never removes the "solve it yourself" moment that makes the hit/miss feedback meaningful.
-
-### 4.4 Post-Round Commentary
-- Short reaction after each round (Hit/Close/Miss), pulled from a small pool of encouraging, non-repetitive scripted lines — this does **not** need an LLM call, just variety in a static content pool, to keep costs down for something shown constantly
-
----
-
-## 5. Content Needed — "Pod Briefing" Per Concept
-
-Every concept (all 8 Kinetic + all 8 Volt, defined in earlier docs) needs a short **Pod Briefing** written before that concept is build-ready. This is new required content, not previously specified:
-
-| Field | Purpose | Example (Kinetic #1) |
+| Class | Agent | Embodiment Rule |
 |---|---|---|
-| **Goal line** (1 sentence) | What Pod says on first entry | "Launch your shot so it lands exactly on the target." |
-| **Controls line** (1 sentence) | How to physically interact with this round's mechanic | "Type your launch speed, then hit Launch." |
-| **Nudge hint** | Tier 1 hint text | "Think about how long it takes to fall before you worry about speed." |
-| **Formula hint** | Tier 2 hint text | Reveals `t = √(2h/g)` and `v = d/t`, unlabeled with numbers |
-| **Miss reaction pool** (3–5 lines) | Rotates on Miss, non-punishing tone | "So close — check your fall time again." / "Off by a bit, try again!" |
-| **Hit reaction pool** (3–5 lines) | Rotates on Hit | "Direct hit! Nice math." / "Perfect trajectory!" |
+| Kinetic | **TITAN-X** | Pod behaves as a lever/pendulum; visibly tips, wobbles, or overcorrects in proportion to the player's torque/momentum error |
+| Volt | **SYNAPSE** | Pod's internal "charge" pulses and decays along the player's actual (possibly wrong) RC time constant; segments dim like resistors under load |
+| Wave | **NOVA** | Pod moves as a wave-form; splits into two phase-shifted echoes that constructively/destructively combine per the player's interference setup |
+| Kinetic / Optics | **AURA-9** | Pod's approach path is a literal parabola or refracted ray computed from the player's current trajectory inputs |
 
-**This means: 16 concepts × this briefing template = the actual Pod content backlog.** Recommend writing these alongside each concept's QA checklist (from the Concept Curriculum docs), not after — Pod content is part of "done," not a follow-up task.
+**Effect:** a student doesn't need to be *told* their torque is unbalanced — they watch TITAN-X visibly struggle to stay upright using their exact numbers, before they even hit launch.
 
 ---
 
-## 6. Technical Implementation
+## 2. Interaction Model — No Chat Box
 
-| Feature | Needs Live LLM Call? | How |
+There is no text input field. All agent communication is **visual/kinetic first**, voice-narrated second (TTS is an accessibility layer, not the primary channel).
+
+| Gesture | Behavior | Replaces |
 |---|---|---|
-| Explain This Round | ❌ No | Static text from the Pod Briefing content table (Section 5) |
-| Hint Ladder (tiers 1–2) | ❌ No | Static text from Pod Briefing |
-| Hint Ladder (tier 3, worked structure) | ⚠️ Optional | Can be static (templated with the round's actual numbers) or LLM-generated for more natural phrasing |
-| Ask Pod (open chat) | ✅ Yes | Needs a real API call — this is the only feature that truly requires an LLM |
-| Post-round commentary | ❌ No | Static rotating pool |
-
-**For "Ask Pod":**
-- Backend: a Next.js API route (`/api/pod-chat`) that calls the Claude API server-side (never expose an API key client-side)
-- System prompt includes: the current concept's name, governing formula, the round's specific values, and an explicit instruction: *"Never state the exact numeric answer the player needs to submit. Explain concepts, help debug their reasoning, and encourage — but the player must do the final calculation themselves."*
-- Keep responses short (2–4 sentences) — this is a chat bubble, not an essay panel
-- Rate-limit or cache lightly, since this is the only per-message-cost feature in the whole app
+| **Tap** | Cycles hint tier (Nudge → Formula → Setup); shown as a widening aperture glow on the pod | Chat message / hint button |
+| **Hold** (>600 ms) | Pod performs a live micro-demo using the player's *current* entered values (ghost-launch, mini RC decay, etc.) alongside the real attempt | "Show me the answer" chat request |
+| **Drag → equation panel** | Pod docks and highlights the specific variable it infers is being misread | Chatbot pointing out an error in text |
+| **Idle / hesitation** | Pod proactively shifts posture/color (anxious flicker, confident glow) *before* being asked | Proactive chatbot message |
 
 ---
 
-## 7. Additional Changes to Existing Docs (Showcasing Pod System-Wide)
+## 3. Hint Tier System — Aperture, Not Chat
 
-### 7.1 Page Flow Update
-- **Tutorial page/overlay is removed as a separate concept** — Pod's "Explain This Round" + first-visit walkthrough absorbs that role entirely. One less thing to build separately.
-- Add a small **global Pod component** (persistent across all pages, not route-specific) to the sitemap — it's not a page, it's a layout-level element, similar to how the Loading state was noted as "a state, not a route"
+Hints are surfaced as an expanding aperture glow on the pod body, not as a chat bubble. Each tap widens the aperture; each new tier is visually distinct:
 
-### 7.2 New Component to Build
-| Component | Purpose |
+| Tier | Aperture Color | Content |
+|---|---|---|
+| 0 (closed) | — | No overlay; only physics body visible |
+| 1 — Nudge | Sky blue glow | Restates physical objective; no formula |
+| 2 — Formula | Purple glow | Governing algebraic equation, no numbers |
+| 3 — Setup | Amber glow | Structured setup with current round values; final arithmetic left to player |
+
+TTS narrates each tier aloud (mutable by the player). Voice is an *accessibility* channel, not the primary one.
+
+---
+
+## 4. Where Agent Pod Appears
+
+| Page | Pod Behaviour |
 |---|---|
-| `<AgentPod />` | Persistent floating orb, idle/speaking states, positioned corner-fixed across all pages |
-| `<PodChatPanel />` | Expandable chat UI, opens on tap, calls `/api/pod-chat` |
-| `pod-briefings.json` (or per-concept data file) | Stores the Section 5 content table for all 16 concepts |
+| Landing | Idle float with neutral physics body (AURA-9 parabola, nearly flat arc) |
+| Class Select | Physics body shifts to match class theme on card hover (lever tips, circuit charges, wave echoes) |
+| Match (Gameplay) | Always present, corner-fixed; physics body live-driven by player's current inputs |
+| Match Summary | Hit → confident-glow posture + maturity aura brightens; Miss → anxious posture; scars updated |
+| Session Stats | Aura at current maturity brightness; cosmetic scar history visible |
 
-### 7.3 Build Priority (Where Pod Fits Into the Existing Sequence)
-1. Build `<AgentPod />` idle presence + "Explain This Round" static bubbles — do this **right after Concept #1 works** (from the Master Build Document's Step 1), since it reuses the same GSAP idle-bob pattern already built for the player avatar
-2. Add Hint Ladder tiers 1–2 (static) once 2–3 concepts exist, so there's more than one Pod Briefing to test variety against
-3. Add `<PodChatPanel />` + live API route **last**, after the core game loop across both classes is validated — it's the most expensive/complex piece and the least essential to the core hook
+**Key UX rule:** Pod is never forced full-screen or blocking. It is a corner presence the player expands (via tap/hold) or ignores.
+
+---
+
+## 5. Per-Agent Physics Body Spec
+
+### AURA-9 — Parabola Ghost (Kinetic / Optics)
+- Renders a live parabolic arc SVG computed from the player's velocity/angle inputs
+- Arc skews above/below ideal trajectory proportional to `arcDeviation` (0..1)
+- Ideal arc (correct solution) shown in solid stroke; player's ghost arc in dashed stroke
+- Over-shot: ghost arc peaks above ideal; Under-shot: ghost arc falls below
+
+### TITAN-X — Lever Beam (Kinetic)
+- Lever beam rotates `tiltAngle` degrees (-45° to +45°) based on torque error
+- `tiltAngle = (1 - proximity) × 45°`; sign determined by over/under application of force
+- `isOverTilted` (|tiltAngle| > 40°) triggers spring-wobble animation
+- Weight rectangles on each arm; warning side brightens when error worsens
+
+### SYNAPSE — Circuit Rings (Volt)
+- Four concentric arc rings light progressively inside-out as player's answer approaches correct
+- Ring brightness = `segmentLevels[i]` (0..1), driven by `chargeLevel = proximity`
+- `isVoltageWarning` (proximity < 0.4 and degrading) triggers outer ring ping pulse
+- Core dot opacity scales with chargeLevel
+
+### NOVA — Wave Echoes (Wave)
+- Two orbs separate by `echoSeparation` pixels (0 = overlap = constructive; 20px = destructive)
+- `waveIntensity` (0.2..1.0) controls combined brightness
+- `phaseOffsetDeg` (0° = constructive, 180° = destructive) displayed as text label
+- Interference ring opacity/weight reflects constructive vs destructive state
+
+---
+
+## 6. Proactive Posture System
+
+The pod senses player state via the **Telemetry Watcher** without waiting to be asked:
+
+| Signal | Trigger | Visual Result |
+|---|---|---|
+| `idle` | Default | Gentle hover-bob animation |
+| `confident` | `proximityToCorrect ≥ 0.90` | Aura blazes; pod lifts slightly; glow intensifies |
+| `anxious` | No input for >5 s | Amber flicker; pod oscillates faster |
+| `warning` | `proximityToCorrect < 0.50` AND error trend degrading | Red edge-glow; pod wobble increases |
+
+TTS narrates anxious posture shifts: `"[Agent name] here — tap me for a hint if you're stuck."`
+
+Error trend is tracked across consecutive input values:
+- **improving** → green pip appears on pod
+- **degrading** → red pip appears on pod
+- **stable** → no pip
+
+---
+
+## 7. Growth & Relationship Layer
+
+Unlike a static mascot, the pod's appearance is a function of a specific student's **mastery history in that class**.
+
+| Visual Element | Source |
+|---|---|
+| Aura ring brightness | `bullseyeRate` (cumulative Bullseye / total attempts in class) |
+| Particle density | `maturityTier` (Recruit → Cadet → Veteran → Elite; XP thresholds: 0 / 200 / 500 / 1000) |
+| Cosmetic scars (dim segments) | `scarSegments[]` — per-concept miss clusters that persist across sessions |
+| Scar healing | Scar resolves when player earns a Bullseye on the same concept in a later session |
+
+Two students who both reach Level 10 (Elite) in Volt Class have **visibly different SYNAPSE pods**, shaped by *how* they struggled. This is an attachment loop the XP system alone cannot create.
+
+**Persistence:** mastery state is stored in `localStorage` for guest players (ephemeral but cross-session within browser). Account auth is a future expansion.
+
+---
+
+## 8. Technical Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      AGENT POD ENGINE                           │
+│                                                                 │
+│  [ Shared Physics Core ]  ──feeds──>  [ Pod Motion Solver ]     │
+│   • torqueModule.ts                    • Reads: live player     │
+│   • rcModule.ts               ┌────     input values (pre-      │
+│   • waveModule.ts             │          submit)                │
+│   • etc. (one per mode)       │        • Outputs: tiltAngle,    │
+│                               │          chargeLevel,           │
+│   Same module instance        │          echoSeparation,        │
+│   used by game simulation     │          arcDeviation, etc.     │
+│             │                 └──────────────┐                  │
+│             ▼                                ▼                  │
+│  [ Telemetry Watcher ]          [ Pod Render Layer ]            │
+│   • idleMs, retryDelta           • Pixi.js / GSAP-driven        │
+│   • hoverWithoutCommit            posture, aura, glow           │
+│   • errorTrend (improving/        SVG physics body per agent    │
+│     degrading/stable)           • No chat UI element            │
+│   • Emits: postureMode                                          │
+│             │                                │                  │
+│             └──────────────┬─────────────────┘                  │
+│                            ▼                                    │
+│              [ Web Speech API — narration only,                 │
+│                mutable, subordinate to visual state ]           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Shared-module architecture rule:** The Pod Motion Solver consumes the **same equation module** as the active game mode (e.g., the torque solver used for Lever & Torque Balance also drives TITAN-X's idle sway). This keeps the embodiment mathematically honest rather than "animation that looks physics-y."
+
+### Key Files
+
+| File | Role |
+|---|---|
+| [`src/lib/pod/agentRegistry.ts`](src/lib/pod/agentRegistry.ts) | 4 agent profiles; `physicsBodyType` and `maturityColors` fields |
+| [`src/lib/pod/podPhysicsTypes.ts`](src/lib/pod/podPhysicsTypes.ts) | `PodPhysicsState`, `PostureMode`, `MaturityTier`, XP thresholds |
+| [`src/lib/pod/usePodPhysics.ts`](src/lib/pod/usePodPhysics.ts) | Hook: subscribes to live inputs, computes per-agent physics state |
+| [`src/components/pod/AgentPod.tsx`](src/components/pod/AgentPod.tsx) | Pod 2.0 component: 4 SVG physics bodies, gesture handlers, aperture overlay, micro-demo |
+| [`src/store/useGameStore.ts`](src/store/useGameStore.ts) | `podHintTier`, `classXP`, `cyclePodHintTier`, `recordPlayerInput` |
+| [`src/lib/pod/podBriefings.ts`](src/lib/pod/podBriefings.ts) | Per-mode nudge/formula/setup hint text (narrated, not primary) |
+
+### Removed (v1 → v2)
+
+| Item | Status |
+|---|---|
+| `<PodChatPanel />` | Removed — no text input channel |
+| `/api/pod-chat` API route | Removed — no LLM chat in Pod 2.0 |
+| Static speech bubble with EXPLAIN button | Removed — aperture overlay replaces it |
+
+---
+
+## 9. Comparative Positioning
+
+| Dimension | Generic Chatbot Tutor | Agent Pod v1 (spec'd) | Agent Pod 2.0 (Embodied) |
+|---|---|---|---|
+| Primary channel | Text | Text + TTS | Motion/visual state; TTS subordinate |
+| Trigger | Player asks | Player asks | Player asks **or** pod senses struggle |
+| Represents physics by | Describing it | Describing it | *Performing* it with its own body |
+| Personalization | None / session-only | Persona flavor text | Persistent visual growth per student per class |
+| Failure mode if removed | Feels like any AI wrapper | Feels like a re-skinned chatbot | Breaks the core teaching loop — it's structural, not cosmetic |
+
+---
+
+## 10. Build Priority
+
+1. **`<AgentPod />` idle presence + physics body** — done immediately after Concept #1 physics core validates; reuses GSAP idle-bob pattern and `usePodPhysics` hook already in place.
+2. **Aperture hint tiers 1–2** (static nudge/formula) — add once 2–3 concepts exist.
+3. **Micro-demo overlay** (hold gesture) — add alongside Concepts #4–#5.
+4. **Drag-to-equation-panel** (variable highlight) — Phase 2; requires equation panel interactive zones.
+5. **Mastery persistence / scar system** (localStorage) — Phase 2; needs cross-session XP tracking.

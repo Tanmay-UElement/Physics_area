@@ -1,5 +1,11 @@
 export type AgentId = 'aura-9' | 'titan-x' | 'synapse' | 'nova';
 
+/** Which SVG physics body this agent renders */
+export type PhysicsBodyType = 'parabola' | 'lever' | 'circuit' | 'wave-echo';
+
+/** Which class group this agent primarily assists with */
+export type AgentClassGroup = 'kinetic' | 'volt' | 'wave';
+
 export interface PodAgentProfile {
   id: AgentId;
   name: string;
@@ -18,6 +24,12 @@ export interface PodAgentProfile {
   speechPitch: number;
   speechRate: number;
   sampleAudioQuote: string;
+  /** The SVG physics body this agent uses as its diegetic form */
+  physicsBodyType: PhysicsBodyType;
+  /** Primary class group for XP-maturity tracking */
+  classGroup: AgentClassGroup;
+  /** Accent hex colors for maturity tiers [Recruit, Cadet, Veteran, Elite] */
+  maturityColors: [string, string, string, string];
 }
 
 export const POD_AGENTS: Record<AgentId, PodAgentProfile> = {
@@ -39,6 +51,9 @@ export const POD_AGENTS: Record<AgentId, PodAgentProfile> = {
     speechPitch: 1.05,
     speechRate: 1.05,
     sampleAudioQuote: 'Vector components aligned. Ready to analyze initial trajectory parameters.',
+    physicsBodyType: 'parabola',
+    classGroup: 'kinetic',
+    maturityColors: ['#0e7490', '#06b6d4', '#38bdf8', '#bae6fd'],
   },
 
   'titan-x': {
@@ -58,6 +73,9 @@ export const POD_AGENTS: Record<AgentId, PodAgentProfile> = {
     avatarIconName: 'Zap',
     speechPitch: 0.85,
     speechRate: 1.1,
+    physicsBodyType: 'lever',
+    classGroup: 'kinetic',
+    maturityColors: ['#92400e', '#f59e0b', '#fbbf24', '#fef3c7'],
     sampleAudioQuote: 'Where you push matters! Adjust your lever arm distance to maximize rotational torque.',
   },
 
@@ -79,6 +97,9 @@ export const POD_AGENTS: Record<AgentId, PodAgentProfile> = {
     speechPitch: 1.15,
     speechRate: 0.98,
     sampleAudioQuote: 'Observing wave interference pattern. Adjust source phase to achieve acoustic cancellation.',
+    physicsBodyType: 'circuit',
+    classGroup: 'volt',
+    maturityColors: ['#581c87', '#a855f7', '#c084fc', '#f5d0fe'],
   },
 
   'nova': {
@@ -99,6 +120,9 @@ export const POD_AGENTS: Record<AgentId, PodAgentProfile> = {
     speechPitch: 1.2,
     speechRate: 1.0,
     sampleAudioQuote: 'Your intuition says heavy objects fall faster, but in a vacuum, gravity accelerates all masses equally!',
+    physicsBodyType: 'wave-echo',
+    classGroup: 'wave',
+    maturityColors: ['#065f46', '#10b981', '#34d399', '#d1fae5'],
   },
 };
 
